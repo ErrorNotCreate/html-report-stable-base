@@ -259,7 +259,8 @@ def test_shared_accordion_contract() -> None:
         assert_true(contract in source, f"shared editor must expose accordion contract: {contract}")
     assert_true("setAttribute('aria-expanded', 'false')" in source, "accordion groups must initialize collapsed")
     assert_true("content.hidden = true" in source, "accordion content must be hidden by default")
-    assert_true("document.querySelectorAll('.drawer-body > .control-group').forEach" in source, "accordion opening must query every current group")
+    assert_true("function accordionGroups()" in source, "accordion opening must use the shared group registry")
+    assert_true(".drawer-repair > .control-group" in source, "accordion registry must include the fixed repair group")
     assert_true("setAccordionGroupOpen(otherGroup, false)" in source, "accordion opening must close other groups")
     assert_true("globalControlInitialized" in source, "global control listeners must be idempotent across editor initialization")
     assert_true("elementControlInitialized" in source and "documentClickBound" in source, "element and document listeners must be idempotent across editor initialization")
@@ -289,7 +290,7 @@ def test_metric_typography_is_a_seventh_global_level() -> None:
         assert_true("指标字号" in html, f"{name} drawer must name the metric size control")
         assert_true(".metric .value" in html and "font-size: var(--metric-size)" in html, f"{name} metric values must use metric size")
         assert_true(".metric .label" in html and "font-size: var(--body-size)" in html, f"{name} metric labels must remain body text")
-    for level in ("'H1'", "'H2'", "'H3'", "'H4'", "'指标'", "'正文'", "'备注'"):
+    for level in ("'L1'", "'L2'", "'L3'", "'L4'", "'指标'", "'正文'", "'备注'"):
         assert_true(level in EDITOR_JS.read_text(encoding="utf-8"), f"single-page typography labels must include {level}")
     assert_true(".typography-label" in single, "single-page template must include visible typography labels")
     assert_true("element.matches('[data-ppt-level=\"metric\"], .metric .value, .metric strong')" in ppt, "PPT typography classification must only recognize metric values")

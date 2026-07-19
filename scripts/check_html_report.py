@@ -35,6 +35,18 @@ COMMON_TOKENS = [
     "elementBorderColor",
     "elementBorderWidth",
     "elementBorderRadius",
+    "pickRecognitionElement",
+    "data-recognition-type",
+    "浏览与模式",
+    "全局样式",
+    "对象编辑",
+    "图表数据",
+    "修复识别",
+    "导出",
+    "https://github.com/Lucas-Fong/html-report-stable-base",
+    "Lucas Fong",
+    "MIT License",
+    "© 2026",
     "report-editor.js",
 ]
 
@@ -135,7 +147,7 @@ def main() -> int:
             failed = True
         else:
             ok(f"slide count: {slide_count}")
-        for token in ('id="deck"', 'id="nav"', 'id="modeToggle"', 'id="exportPpt"', "syncDeckJsonFromDom"):
+        for token in ('id="deck"', 'id="nav"', 'id="modeToggle"', 'id="exportPpt"', "syncDeckJsonFromDom", "表格设置"):
             if token not in html:
                 fail(f"PPT mode is missing {token}")
                 failed = True

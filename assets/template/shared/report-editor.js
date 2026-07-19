@@ -15,24 +15,43 @@
   };
 
   let selectedElement = null;
+  let recognitionPickMode = false;
+  let recognitionCandidate = null;
   let documentClickBound = false;
   let sectionNavBound = false;
   let typographyResizeBound = false;
   const globalDefaults = new Map();
   const MODULE_ICONS = {
+    '浏览与模式': '⌘',
+    '全局样式': 'Aa',
+    '对象编辑': '◉',
+    '表格设置': '▦',
+    '图表数据': '▧',
+    '修复识别': '＋',
+    '导出': '⇩',
     '导航样式': '◎',
     '章节导航': '◎',
     '排版设置': 'Aa',
     '全局排版': 'Aa',
-    '表格设置': '▦',
+    '补充识别': '＋',
     '元素独立样式': '◉',
     '元素尺寸': '↔',
     '文本样式': 'T',
     '框体样式': '□',
   };
 
+  function accordionGroups() {
+    return [...document.querySelectorAll('.drawer-body > .control-group, .drawer-repair > .control-group')];
+  }
+
   function editModeEnabled() {
     return document.body.classList.contains('edit-mode');
+  }
+
+  function setDataEditContext(context = '') {
+    if (context) document.body.dataset.dataEditContext = context;
+    else delete document.body.dataset.dataEditContext;
+    refreshDataGroupAvailability();
   }
 
   function pxNumber(value, fallback = 0) {
@@ -57,7 +76,7 @@
     const content = group.querySelector(':scope > .control-group-content');
     if (!toggle || !content) return;
     if (open) {
-      document.querySelectorAll('.drawer-body > .control-group').forEach(otherGroup => {
+      accordionGroups().forEach(otherGroup => {
         if (otherGroup !== group) setAccordionGroupOpen(otherGroup, false);
       });
     }
@@ -67,7 +86,7 @@
   }
 
   function initAccordionGroups() {
-    document.querySelectorAll('.drawer-body > .control-group').forEach((group, index) => {
+    accordionGroups().forEach((group, index) => {
       if (group.dataset.accordionInitialized === 'true') return;
       const heading = group.querySelector(':scope > h4');
       if (!heading) return;
@@ -100,6 +119,53 @@
     });
   }
 
+  function openAccordionGroup(label) {
+    const groups = accordionGroups();
+    const target = groups.find(group => {
+      const toggle = group.querySelector(':scope > .control-group-toggle');
+      const heading = group.querySelector(':scope > h4');
+      return (toggle?.textContent || heading?.textContent || '').trim() === label;
+    });
+    if (target) setAccordionGroupOpen(target, true);
+  }
+
+  function openDrawerGroupByIntent(intent) {
+    const group = document.querySelector(`.drawer-body > .control-group[data-drawer-intent="${intent}"], .drawer-repair > .control-group[data-drawer-intent="${intent}"]`);
+    if (group?.classList.contains('is-unavailable')) return;
+    if (group) setAccordionGroupOpen(group, true);
+  }
+
+  function refreshDataGroupAvailability() {
+    [
+      {
+        intent: 'table',
+        available: document.body.dataset.dataEditContext === 'table',
+        title: '选中表格单元格后可用',
+      },
+      {
+        intent: 'chart',
+        available: selectedElement && elementType(selectedElement) === 'chart',
+        title: '选中 ECharts 图表后可用',
+      },
+    ].forEach(({ intent, available, title }) => {
+      const group = document.querySelector(`.drawer-body > .control-group[data-drawer-intent="${intent}"]`);
+      if (!group) return;
+      const unavailable = editModeEnabled() && !available;
+      group.classList.toggle('is-unavailable', unavailable);
+      const toggle = group.querySelector(':scope > .control-group-toggle');
+      if (toggle) {
+        toggle.disabled = unavailable;
+        toggle.setAttribute('aria-disabled', String(unavailable));
+        toggle.title = unavailable ? title : '';
+      }
+      group.querySelectorAll('input, select, textarea, button').forEach(control => {
+        if (!control.classList.contains('edit-only')) return;
+        control.disabled = unavailable || !editModeEnabled();
+      });
+      if (unavailable && group.classList.contains('is-open')) setAccordionGroupOpen(group, false);
+    });
+  }
+
   function reportScale() {
     if (document.body.dataset.reportMode !== 'ppt') return 1;
     const activeSlide = document.querySelector('.slide.active-slide');
@@ -126,7 +192,11 @@
     document.querySelectorAll('[data-selected-element-label]').forEach(label => {
       label.textContent = selectedElement ? `已选中：${selectedElement.dataset.pptxName || selectedElement.dataset.editableElement || '元素'}` : '';
     });
-    if (!selectedElement) return;
+    refreshDataGroupAvailability();
+    if (!selectedElement) {
+      refreshChartDataControls();
+      return;
+    }
     const style = getComputedStyle(selectedElement);
     Object.entries(STYLE_CONTROLS).forEach(([id, [property]]) => {
       const input = document.getElementById(id);
@@ -142,9 +212,11 @@
       else if (id === 'elementFontSize' || id === 'elementBorderWidth' || id === 'elementBorderRadius') input.value = Math.round(pxNumber(value));
       else input.value = value;
     });
+    refreshChartDataControls();
   }
 
   function rememberGlobalDefaults() {
+    refreshGlobalControlsFromComputedTypography();
     document.querySelectorAll('[data-global-var]').forEach(input => {
       if (!globalDefaults.has(input.dataset.globalVar)) globalDefaults.set(input.dataset.globalVar, input.value);
     });
@@ -170,6 +242,76 @@
     refreshTypographyLabels();
   }
 
+  function scopeForGlobalControlSampling() {
+    if (document.body.dataset.reportMode === 'ppt') {
+      return document.querySelector('.slide.active-slide') || document.querySelector('#deck .slide') || document.querySelector('main');
+    }
+    return document.querySelector('main') || document.body;
+  }
+
+  function firstVisibleElement(selectors) {
+    const scope = scopeForGlobalControlSampling();
+    if (!scope) return null;
+    const elements = selectors.flatMap(selector => [...scope.querySelectorAll(selector)]);
+    return elements.find(element => {
+      if (!(element instanceof Element)) return false;
+      if (element.closest('.style-drawer, .drawer-toggle, #nav, #sectionNav')) return false;
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    }) || null;
+  }
+
+  function computedPxInputValue(element, property = 'fontSize') {
+    if (!element) return '';
+    const value = pxNumber(getComputedStyle(element)[property], NaN);
+    return Number.isFinite(value) ? String(Math.round(value)) : '';
+  }
+
+  function computedLineHeightValue(element) {
+    if (!element) return '';
+    const style = getComputedStyle(element);
+    const lineHeight = pxNumber(style.lineHeight, NaN);
+    const fontSize = pxNumber(style.fontSize, NaN);
+    if (!Number.isFinite(lineHeight)) return '';
+    if (Number.isFinite(fontSize) && fontSize > 0) {
+      return String(Math.round((lineHeight / fontSize) * 100) / 100);
+    }
+    return String(Math.round(lineHeight));
+  }
+
+  function setGlobalInputDisplay(globalVar, value) {
+    if (value === '') return;
+    const input = document.querySelector(`[data-global-var="${globalVar}"]`);
+    if (!input) return;
+    input.value = value;
+    const out = document.querySelector(`[data-global-out="${globalVar}"]`);
+    if (out) out.textContent = value;
+  }
+
+  function refreshGlobalControlsFromComputedTypography() {
+    const samples = {
+      '--h1-size': firstVisibleElement(['[data-ppt-level="h1"]', 'h1']),
+      '--h2-size': firstVisibleElement(['[data-ppt-level="h2"]', 'h2']),
+      '--h3-size': firstVisibleElement(['[data-ppt-level="h3"]', 'h3']),
+      '--h4-size': firstVisibleElement(['[data-ppt-level="h4"]', 'h4', '.subtitle']),
+      '--metric-size': firstVisibleElement(['[data-ppt-level="metric"]', '.metric .value', '.metric strong']),
+      '--body-size': firstVisibleElement(['[data-ppt-level="body"]', 'p', 'li', 'td', 'th', '.body-text']),
+      '--note-size': firstVisibleElement(['[data-ppt-level="note"]', '.note']),
+    };
+    Object.entries(samples).forEach(([globalVar, element]) => {
+      setGlobalInputDisplay(globalVar, computedPxInputValue(element));
+    });
+    setGlobalInputDisplay('--body-line-height', computedLineHeightValue(samples['--body-size']));
+
+    const tableCell = firstVisibleElement(['td', 'th']);
+    if (tableCell) {
+      const style = getComputedStyle(tableCell);
+      setGlobalInputDisplay('--table-cell-padding-y', computedPxInputValue(tableCell, 'paddingTop') || computedPxInputValue(tableCell, 'paddingBottom'));
+      setGlobalInputDisplay('--table-cell-padding-x', computedPxInputValue(tableCell, 'paddingLeft') || computedPxInputValue(tableCell, 'paddingRight'));
+    }
+  }
+
   function resetSelectedStyles(properties) {
     if (!selectedElement) return;
     properties.forEach(property => { selectedElement.style[property] = ''; });
@@ -179,13 +321,16 @@
     window.dispatchEvent(new Event('resize'));
   }
 
-  function addGroupReset(title, label, onReset) {
-    const group = [...document.querySelectorAll('.drawer-body > .control-group')].find(candidate => {
+  function addGroupReset(titles, label, onReset) {
+    const titleList = Array.isArray(titles) ? titles : [titles];
+    const group = [...document.querySelectorAll('.drawer-body > .control-group, .drawer-repair > .control-group, .drawer-subgroup')].find(candidate => {
       const toggle = candidate.querySelector(':scope > .control-group-toggle');
-      return toggle?.textContent.trim() === title || (title === '全局排版' && toggle?.textContent.trim() === '排版设置');
+      const heading = candidate.querySelector(':scope > h5, :scope > h4');
+      const title = (toggle?.textContent || heading?.textContent || '').trim();
+      return titleList.includes(title);
     });
-    const content = group?.querySelector(':scope > .control-group-content');
-    if (!content || content.querySelector('.group-reset-btn')) return;
+    const content = group?.querySelector(':scope > .control-group-content') || group;
+    if (!content || content.querySelector(':scope > .group-reset-btn')) return;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'group-reset-btn edit-only';
@@ -199,7 +344,7 @@
   }
 
   function initResetButtons() {
-    addGroupReset('全局排版', '重置排版设置', resetGlobalControls);
+    addGroupReset(['全局样式', '全局排版', '排版设置'], '重置排版设置', resetGlobalControls);
     addGroupReset('元素尺寸', '重置元素尺寸', () => resetSelectedStyles(['width', 'height']));
     addGroupReset('文本样式', '重置文本样式', () => resetSelectedStyles(['fontSize', 'color', 'fontWeight', 'textAlign', 'lineHeight']));
     addGroupReset('框体样式', '重置框体样式', () => resetSelectedStyles(['backgroundColor', 'borderColor', 'borderWidth', 'borderRadius']));
@@ -221,23 +366,39 @@
     return [...document.querySelectorAll('main h1, main h2, main h3, main h4, main p, main li, main td, main th, main .body-text, main .note, main .metric .value, main .metric strong')];
   }
 
+  function typographyLabelPosition(rect, labelRect, options = {}) {
+    const viewportRight = options.viewportRight ?? window.innerWidth - 8;
+    const scrollX = options.scrollX ?? window.scrollX;
+    const scrollY = options.scrollY ?? window.scrollY;
+    const minLeft = options.minLeft ?? 8;
+    const minTop = options.minTop ?? 8;
+    const gap = options.gap ?? 4;
+    const preferredLeft = rect.right + gap + scrollX;
+    const maxLeft = viewportRight + scrollX - labelRect.width;
+    const left = Math.max(minLeft + scrollX, Math.min(preferredLeft, maxLeft));
+    const preferredTop = rect.top - labelRect.height - gap + scrollY;
+    const fallbackTop = rect.top + gap + scrollY;
+    const top = preferredTop >= minTop + scrollY ? preferredTop : fallbackTop;
+    return { left: Math.round(left), top: Math.round(top) };
+  }
+
   function refreshTypographyLabels() {
     if (!isSinglePageMode()) return;
     document.querySelectorAll('.typography-label').forEach(label => label.remove());
     if (!editModeEnabled()) return;
-    const fragment = document.createDocumentFragment();
     typographyTargets().forEach(element => {
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       const label = document.createElement('span');
       label.className = 'typography-label';
       label.textContent = typographyLevel(element);
-      label.style.left = `${Math.max(4, rect.left + window.scrollX)}px`;
-      label.style.top = `${Math.max(4, rect.top + window.scrollY - 18)}px`;
-      fragment.appendChild(label);
+      document.body.appendChild(label);
+      const labelRect = label.getBoundingClientRect();
+      const position = typographyLabelPosition(rect, labelRect, { minLeft: 4, minTop: 4 });
+      label.style.left = `${position.left}px`;
+      label.style.top = `${position.top}px`;
       element.dataset.typographyLabel = label.textContent;
     });
-    document.body.appendChild(fragment);
   }
 
   function rgbToHex(value) {
@@ -252,15 +413,273 @@
     selectedElement?.classList.remove('selected-element');
     selectedElement = element || null;
     selectedElement?.classList.add('selected-element');
+    setDataEditContext(selectedElement && elementType(selectedElement) === 'chart' ? 'chart' : '');
     refreshElementControls();
+    if (selectedElement) openDrawerGroupByIntent(elementType(selectedElement) === 'chart' ? 'chart' : 'object');
     document.dispatchEvent(new CustomEvent('html-report-element-selected', { detail: { element: selectedElement } }));
+  }
+
+  function recognitionStatus(message, kind = '') {
+    const status = document.getElementById('recognitionStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-error', kind === 'error');
+    status.classList.toggle('is-ok', kind === 'ok');
+  }
+
+  function setRecognitionCandidate(element) {
+    recognitionCandidate?.classList.remove('recognition-candidate');
+    recognitionCandidate = element || null;
+    recognitionCandidate?.classList.add('recognition-candidate');
+    const label = document.getElementById('recognitionCandidateLabel');
+    if (label) {
+      const name = recognitionCandidate
+        ? recognitionCandidate.dataset.pptxName || recognitionCandidate.tagName.toLowerCase()
+        : '未选择';
+      label.textContent = `待识别：${name}`;
+    }
+  }
+
+  function setRecognitionPickMode(enabled) {
+    recognitionPickMode = Boolean(enabled && editModeEnabled());
+    document.body.classList.toggle('recognition-pick-mode', recognitionPickMode);
+    if (!recognitionPickMode && !editModeEnabled()) setRecognitionCandidate(null);
+    const button = document.getElementById('pickRecognitionElement');
+    if (button) button.classList.toggle('active', recognitionPickMode);
+    if (recognitionPickMode) {
+      openDrawerGroupByIntent('recognition');
+      recognitionStatus('请点击页面中需要补充识别的主体元素。');
+    }
+    else recognitionStatus(recognitionCandidate ? '已选择元素，请选择识别类型。' : '编辑模式下可手动补充漏识别元素。');
+  }
+
+  function recognitionTargetFromClick(target) {
+    if (!(target instanceof Element)) return null;
+    if (target.closest('.style-drawer, .drawer-toggle, nav, #nav, #sectionNav, .html-export-choice')) return null;
+    const element = target.closest('main *');
+    if (!element) return null;
+    if (element.matches('.kicker, .foot, .page-number') || element.closest('.foot')) return null;
+    return element;
+  }
+
+  function markEditableText(element) {
+    element.classList.add('editable');
+    element.dataset.editableElement = 'text';
+    if (editModeEnabled()) element.setAttribute('contenteditable', 'true');
+  }
+
+  function markTableEditable(table) {
+    table.querySelectorAll('th, td').forEach(cell => {
+      cell.classList.add('editable');
+      if (editModeEnabled()) cell.setAttribute('contenteditable', 'true');
+    });
+  }
+
+  function applyRecognitionType(type) {
+    if (!editModeEnabled()) {
+      recognitionStatus('请先开启编辑模式。', 'error');
+      return;
+    }
+    const candidate = recognitionCandidate || selectedElement;
+    if (!candidate) {
+      recognitionStatus('请先点击“选择元素”，再点页面中的元素。', 'error');
+      return;
+    }
+
+    let recognized = candidate;
+    if (type === 'text') {
+      markEditableText(recognized);
+    } else if (type === 'shape') {
+      recognized.dataset.editableElement = 'shape';
+    } else if (type === 'chart') {
+      recognized = candidate.matches('.chart') ? candidate : candidate.querySelector('.chart') || candidate;
+      recognized.dataset.editableElement = 'chart';
+      recognized.classList.add('chart');
+    } else if (type === 'image') {
+      recognized = candidate.matches('img') ? candidate : candidate.querySelector('img');
+      if (!recognized) {
+        recognitionStatus('未找到图片元素，请直接点图片或包含图片的容器。', 'error');
+        return;
+      }
+      recognized.dataset.editableElement = 'image';
+    } else if (type === 'table') {
+      recognized = candidate.matches('table') ? candidate : candidate.closest('table') || candidate.querySelector('table');
+      if (!recognized) {
+        recognitionStatus('未找到真实 table。伪表格需要先改成真实表格。', 'error');
+        return;
+      }
+      markTableEditable(recognized);
+      window.syncDeckJsonFromDom?.();
+      setRecognitionCandidate(null);
+      setRecognitionPickMode(false);
+      refreshTypographyLabels();
+      setDataEditContext('table');
+      openDrawerGroupByIntent('table');
+      recognitionStatus('表格单元格已设为可编辑。', 'ok');
+      return;
+    } else {
+      recognitionStatus('请选择有效的识别类型。', 'error');
+      return;
+    }
+
+    window.syncDeckJsonFromDom?.();
+    setRecognitionCandidate(null);
+    setRecognitionPickMode(false);
+    selectElement(recognized);
+    openDrawerGroupByIntent(type === 'chart' ? 'chart' : 'object');
+    refreshTypographyLabels();
+    recognitionStatus('元素已补充识别，可继续修改样式或文字。', 'ok');
   }
 
   function resizeSelectedChart() {
     if (!selectedElement || elementType(selectedElement) !== 'chart' || !window.echarts) return;
-    const chartDom = selectedElement.matches('.chart') ? selectedElement : selectedElement.querySelector('.chart');
+    const chartDom = chartDomFromElement(selectedElement);
     if (!chartDom) return;
     window.echarts.getInstanceByDom(chartDom)?.resize();
+  }
+
+  function chartDomFromElement(element) {
+    if (!element) return null;
+    return element.matches?.('.chart') ? element : element.querySelector?.('.chart');
+  }
+
+  function chartInstanceFromElement(element) {
+    const chartDom = chartDomFromElement(element);
+    if (!chartDom || !window.echarts) return null;
+    return window.echarts.getInstanceByDom(chartDom) || null;
+  }
+
+  function plainSeriesData(data) {
+    return (data || []).map(item => {
+      if (item && typeof item === 'object' && 'value' in item) return item.value;
+      return item;
+    });
+  }
+
+  function editablePayloadFromChartOption(option) {
+    const xAxis = Array.isArray(option?.xAxis) ? option.xAxis[0] : option?.xAxis;
+    const yAxis = Array.isArray(option?.yAxis) ? option.yAxis[0] : option?.yAxis;
+    const categoryAxis = yAxis?.data ? 'yAxis' : xAxis?.data ? 'xAxis' : '';
+    const categories = categoryAxis === 'yAxis' ? yAxis.data : categoryAxis === 'xAxis' ? xAxis.data : [];
+    return {
+      categories,
+      categoryAxis,
+      series: (option?.series || []).map(series => ({
+        name: series.name || '',
+        type: series.type || '',
+        data: plainSeriesData(series.data),
+      })),
+    };
+  }
+
+  function currentChartOption(element) {
+    const chart = chartInstanceFromElement(element);
+    if (chart) return chart.getOption();
+    const stored = chartDomFromElement(element)?.dataset.chartOption;
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function refreshChartDataControls() {
+    const editor = document.getElementById('chartDataEditor');
+    const status = document.getElementById('chartDataStatus');
+    if (!editor || !status) return;
+    status.classList.remove('is-error', 'is-ok');
+    if (!selectedElement || elementType(selectedElement) !== 'chart') {
+      editor.value = '';
+      status.textContent = '支持 categories / series，或 { "option": {...} }。';
+      return;
+    }
+    const option = currentChartOption(selectedElement);
+    if (!option) {
+      editor.value = '';
+      status.textContent = '未找到 ECharts 实例。请确认图表已渲染。';
+      status.classList.add('is-error');
+      return;
+    }
+    const stored = chartDomFromElement(selectedElement)?.dataset.chartData;
+    if (stored) editor.value = stored;
+    else editor.value = JSON.stringify(editablePayloadFromChartOption(option), null, 2);
+    status.textContent = '修改 JSON 后点击“应用图表数据”。';
+  }
+
+  function mergedChartOption(baseOption, payload) {
+    if (payload && typeof payload === 'object' && payload.option) return payload.option;
+    const next = JSON.parse(JSON.stringify(baseOption || {}));
+    const categoryAxis = payload.categoryAxis === 'xAxis' || payload.categoryAxis === 'yAxis'
+      ? payload.categoryAxis
+      : Array.isArray(next.yAxis) && next.yAxis[0]?.data
+        ? 'yAxis'
+        : 'xAxis';
+    if (Array.isArray(payload.categories)) {
+      const axes = Array.isArray(next[categoryAxis]) ? next[categoryAxis] : [next[categoryAxis] || {}];
+      axes[0] = { ...axes[0], type: axes[0].type || 'category', data: payload.categories };
+      next[categoryAxis] = axes;
+    }
+    if (Array.isArray(payload.series)) {
+      const existing = Array.isArray(next.series) ? next.series : [];
+      next.series = payload.series.map((series, index) => ({
+        ...(existing[index] || {}),
+        ...(series.type ? { type: series.type } : {}),
+        ...(series.name ? { name: series.name } : {}),
+        data: Array.isArray(series.data) ? series.data : Array.isArray(series.values) ? series.values : [],
+      }));
+    }
+    return next;
+  }
+
+  function setChartDataStatus(message, kind = '') {
+    const status = document.getElementById('chartDataStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-error', kind === 'error');
+    status.classList.toggle('is-ok', kind === 'ok');
+  }
+
+  function applyChartDataEditor() {
+    if (!editModeEnabled() || !selectedElement || elementType(selectedElement) !== 'chart') return;
+    const editor = document.getElementById('chartDataEditor');
+    const chartDom = chartDomFromElement(selectedElement);
+    const chart = chartInstanceFromElement(selectedElement);
+    if (!editor || !chartDom || !chart) {
+      setChartDataStatus('未找到可编辑的 ECharts 图表。', 'error');
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(editor.value);
+    } catch (error) {
+      setChartDataStatus(`JSON 格式错误：${error.message}`, 'error');
+      return;
+    }
+    const option = mergedChartOption(chart.getOption(), payload);
+    chart.setOption(option, true);
+    chart.resize();
+    const normalizedPayload = payload.option ? editablePayloadFromChartOption(option) : payload;
+    const payloadText = JSON.stringify(normalizedPayload, null, 2);
+    chartDom.dataset.chartData = payloadText;
+    chartDom.dataset.chartOption = JSON.stringify(option);
+    editor.value = payloadText;
+    window.syncDeckJsonFromDom?.();
+    setChartDataStatus('图表数据已应用并保存到页面。', 'ok');
+  }
+
+  function applyStoredChartOptions() {
+    if (!window.echarts) return;
+    document.querySelectorAll('[data-editable-element="chart"].chart[data-chart-option], [data-editable-element="chart"] .chart[data-chart-option]').forEach(chartDom => {
+      const chart = window.echarts.getInstanceByDom(chartDom);
+      if (!chart) return;
+      try {
+        chart.setOption(JSON.parse(chartDom.dataset.chartOption), true);
+        chart.resize();
+      } catch (_error) {
+        // Keep the chart's generated option when saved data is invalid.
+      }
+    });
   }
 
   function applyElementStyle(input) {
@@ -308,12 +727,14 @@
     });
     const fontFamily = document.getElementById('fontFamily');
     if (fontFamily?.dataset.globalControlInitialized === 'true') return;
-    fontFamily?.addEventListener('change', event => {
+    const applyFontFamily = event => {
       if (!editModeEnabled()) return;
-      document.documentElement.style.setProperty('--font-family', event.target.value);
+      document.documentElement.style.setProperty('--font-family', event.target.value.replace(/\s*\n\s*/g, ' ').trim());
       document.body.classList.add('global-font-active');
       refreshTypographyLabels();
-    });
+    };
+    fontFamily?.addEventListener('input', applyFontFamily);
+    fontFamily?.addEventListener('change', applyFontFamily);
     if (fontFamily) fontFamily.dataset.globalControlInitialized = 'true';
   }
 
@@ -404,9 +825,22 @@
       input.addEventListener('change', applyHexColor);
       input.dataset.colorHexInitialized = 'true';
     });
+    bindChartDataControls();
+    bindRecognitionControls();
     if (documentClickBound) return;
     document.addEventListener('click', event => {
       if (!editModeEnabled()) return;
+      if (recognitionPickMode) {
+        const candidate = recognitionTargetFromClick(event.target);
+        if (candidate) {
+          event.preventDefault();
+          event.stopPropagation();
+          setRecognitionCandidate(candidate);
+          setRecognitionPickMode(false);
+          recognitionStatus(candidate.dataset.editableElement ? '该元素已被识别，可重新选择类型覆盖。' : '已选择元素，请选择识别类型。');
+        }
+        return;
+      }
       const target = event.target.closest('[data-editable-element]');
       if (target) {
         selectElement(target);
@@ -415,6 +849,41 @@
       if (!event.target.closest('.style-drawer')) selectElement(null);
     });
     documentClickBound = true;
+  }
+
+  function bindRecognitionControls() {
+    const pick = document.getElementById('pickRecognitionElement');
+    if (pick && pick.dataset.recognitionPickInitialized !== 'true') {
+      pick.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!editModeEnabled()) {
+          recognitionStatus('请先开启编辑模式。', 'error');
+          return;
+        }
+        setRecognitionPickMode(!recognitionPickMode);
+      });
+      pick.dataset.recognitionPickInitialized = 'true';
+    }
+    document.querySelectorAll('[data-recognition-type]').forEach(button => {
+      if (button.dataset.recognitionTypeInitialized === 'true') return;
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        applyRecognitionType(button.dataset.recognitionType);
+      });
+      button.dataset.recognitionTypeInitialized = 'true';
+    });
+  }
+
+  function bindChartDataControls() {
+    const button = document.getElementById('applyChartData');
+    if (!button || button.dataset.chartDataInitialized === 'true') return;
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      applyChartDataEditor();
+    });
+    button.dataset.chartDataInitialized = 'true';
   }
 
   function bindDeleteControl() {
@@ -582,6 +1051,9 @@
     bindElementControls();
     bindDeleteControl();
     refreshElementControls();
+    refreshDataGroupAvailability();
+    window.setTimeout(applyStoredChartOptions, 0);
+    window.addEventListener('load', applyStoredChartOptions, { once: true });
     if (isSinglePageMode()) {
       buildSectionNav();
       bindSectionNavControls();
@@ -595,7 +1067,7 @@
         typographyResizeBound = true;
       }
       const download = document.getElementById('downloadHtml');
-      if (download) download.onclick = downloadStandaloneHtml;
+      if (download && !document.getElementById('htmlExportChoice')) download.onclick = downloadStandaloneHtml;
       bindLongExportDownloads();
     }
   }
@@ -603,6 +1075,12 @@
   window.HTMLReportEditor = {
     init,
     initAccordionGroups,
+    openAccordionGroup,
+    openDrawerGroupByIntent,
+    refreshDataGroupAvailability,
+    setDataEditContext,
+    setRecognitionPickMode,
+    applyRecognitionType,
     buildSectionNav,
     setSectionNavStyle,
     shortSectionTitle,
@@ -614,6 +1092,11 @@
     exportSnapshotHtml,
     previewServiceAvailable,
     requestInstantExport,
+    refreshGlobalControlsFromComputedTypography,
+    refreshChartDataControls,
+    applyChartDataEditor,
+    applyStoredChartOptions,
+    typographyLabelPosition,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

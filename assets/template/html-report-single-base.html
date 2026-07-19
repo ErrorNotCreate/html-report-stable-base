@@ -106,10 +106,10 @@
     .demo-chart { width: 100%; height: 280px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--muted); }
     .demo-image { display: block; width: 100%; height: 280px; object-fit: cover; background: #e9edf3; }
     .drawer-toggle { position: fixed; right: 18px; bottom: 18px; z-index: 40; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font-size: 18px; cursor: pointer; box-shadow: 0 8px 24px rgba(16,24,40,.14); }
-    .style-drawer { position: fixed; z-index: 50; top: 0; right: 0; width: var(--drawer-width); height: 100vh; display: grid; grid-template-rows: auto 1fr auto; background: #fff; border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .18s ease; }
+    .style-drawer { position: fixed; z-index: 50; top: 0; right: 0; width: var(--drawer-width); height: 100vh; display: grid; grid-template-rows: auto 1fr auto auto; background: #fff; border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .18s ease; }
     .style-drawer.open { transform: translateX(0); }
     body.drawer-open .drawer-toggle { display: none; }
-    .drawer-header, .drawer-footer { padding: 14px 18px; background: #fff; }
+    .drawer-header, .drawer-footer, .drawer-repair { padding: 14px 18px; background: #fff; }
     .drawer-header { border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
     .drawer-body { min-height: 0; overflow-y: auto; padding: 14px 18px; display: grid; align-content: start; gap: 12px; }
     .drawer-footer { border-top: 1px solid var(--line); }
@@ -131,7 +131,7 @@
     .control-group { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
     .control-group h4 { font-size: 14px; }
     .control-row { display: grid; grid-template-columns: 68px minmax(0, 1fr) 24px; gap: 6px; align-items: center; font: 12px/1.4 Arial, sans-serif; }
-    .control-row input, .control-row select { width: 100%; min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; }
+    .control-row input, .control-row select, .control-row textarea { width: 100%; min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; }
     .color-input-wrap { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 6px; align-items: center; }
     .color-input-wrap input[type="color"] { width: 32px; height: 28px; padding: 2px; }
     .color-input-wrap input[type="text"] { min-width: 0; text-transform: uppercase; }
@@ -232,17 +232,19 @@
       <button class="full-btn" id="editToggle" type="button">编辑模式</button>
     </div>
     <div class="drawer-body">
-      <div class="control-group">
-        <h4>章节导航</h4>
+      <div class="control-group" data-drawer-intent="navigation">
+        <h4>浏览与模式</h4>
+        <p class="drawer-group-help">控制单屏滚动报告的章节导航位置与显示方式。</p>
         <div class="nav-style-control" id="sectionNavStyleControl" role="group" aria-label="单页导航样式">
           <button type="button" data-section-nav-style="hidden">不展示</button>
           <button type="button" data-section-nav-style="left">左侧</button>
           <button class="active" type="button" data-section-nav-style="right">右侧</button>
         </div>
       </div>
-      <div class="control-group">
-        <h4>全局排版</h4>
-        <label class="control-row"><span>字体</span><input class="edit-only" id="fontFamily" type="text" value='"Microsoft YaHei", "微软雅黑", Arial, sans-serif'><span></span></label>
+      <div class="control-group" data-drawer-intent="global">
+        <h4>全局样式</h4>
+        <p class="drawer-group-help">统一调整整篇报告的字体层级、正文行高和表格内边距。</p>
+        <label class="control-row control-row-textarea"><span>字体</span><textarea class="edit-only" id="fontFamily" rows="3" spellcheck="false">"Microsoft YaHei", "微软雅黑", Arial, sans-serif</textarea><span></span></label>
         <label class="control-row"><span>L1字号</span><input class="edit-only" data-global-var="--h1-size" type="number" value="48"><span>px</span></label>
         <label class="control-row"><span>L2字号</span><input class="edit-only" data-global-var="--h2-size" type="number" value="32"><span>px</span></label>
         <label class="control-row"><span>L3字号</span><input class="edit-only" data-global-var="--h3-size" type="number" value="24"><span>px</span></label>
@@ -254,40 +256,77 @@
         <label class="control-row"><span>表格上下</span><input class="edit-only" data-global-var="--table-cell-padding-y" type="number" value="10"><span>px</span></label>
         <label class="control-row"><span>表格左右</span><input class="edit-only" data-global-var="--table-cell-padding-x" type="number" value="12"><span>px</span></label>
       </div>
-      <div class="control-group">
-        <h4>元素独立样式</h4>
+      <div class="control-group" data-drawer-intent="object">
+        <h4>对象编辑</h4>
+        <p class="drawer-group-help">只修改当前选中的文本、矩形、图片或图表尺寸与外观。</p>
         <div class="element-empty-state">开启编辑后，在页面中选择文本、矩形、图表或图片。</div>
         <div class="element-selected-state" hidden>
           <div class="selected-element-label" data-selected-element-label></div>
           <button class="full-btn edit-only danger-btn" id="deleteSelectedElement" type="button">删除元素</button>
         </div>
+        <div class="drawer-subgroup element-control-group" data-element-types="text shape chart image" hidden>
+          <h5>元素尺寸</h5>
+          <label class="control-row"><span>宽度</span><input class="edit-only" id="elementWidth" type="number" min="20"><span>px</span></label>
+          <label class="control-row"><span>高度</span><input class="edit-only" id="elementHeight" type="number" min="20"><span>px</span></label>
+        </div>
+        <div class="drawer-subgroup element-control-group" data-element-types="text" hidden>
+          <h5>文本样式</h5>
+          <label class="control-row"><span>字号</span><input class="edit-only" id="elementFontSize" type="number" min="8"><span>px</span></label>
+          <label class="control-row"><span>文字颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementColor" type="color"><input class="edit-only" type="text" data-color-target="elementColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
+          <label class="control-row"><span>字重</span><select class="edit-only" id="elementFontWeight"><option value="400">常规</option><option value="600">半粗</option><option value="700">粗体</option><option value="900">特粗</option></select><span></span></label>
+          <label class="control-row"><span>对齐</span><select class="edit-only" id="elementTextAlign"><option value="left">左</option><option value="center">中</option><option value="right">右</option></select><span></span></label>
+          <label class="control-row"><span>行高</span><input class="edit-only" id="elementLineHeight" type="number" min="1" max="3" step="0.05"><span></span></label>
+        </div>
+        <div class="drawer-subgroup element-control-group" data-element-types="text shape" hidden>
+          <h5>框体样式</h5>
+          <label class="control-row"><span>背景</span><span class="color-input-wrap"><input class="edit-only" id="elementBackground" type="color"><input class="edit-only" type="text" data-color-target="elementBackground" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
+          <label class="control-row"><span>边框颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementBorderColor" type="color"><input class="edit-only" type="text" data-color-target="elementBorderColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
+          <label class="control-row"><span>边框宽度</span><input class="edit-only" id="elementBorderWidth" type="number" min="0" max="20"><span>px</span></label>
+          <label class="control-row"><span>圆角</span><input class="edit-only" id="elementBorderRadius" type="number" min="0" max="100"><span>px</span></label>
+        </div>
       </div>
-      <div class="control-group element-control-group" data-element-types="text shape chart image" hidden>
-        <h4>元素尺寸</h4>
-        <label class="control-row"><span>宽度</span><input class="edit-only" id="elementWidth" type="number" min="20"><span>px</span></label>
-        <label class="control-row"><span>高度</span><input class="edit-only" id="elementHeight" type="number" min="20"><span>px</span></label>
+      <div class="control-group" data-drawer-intent="chart">
+        <h4>图表数据</h4>
+        <p class="drawer-group-help">只修改 ECharts 图表的 categories / series 或完整 option。</p>
+        <div class="drawer-subgroup element-control-group" data-element-types="chart">
+          <textarea class="edit-only chart-data-editor" id="chartDataEditor" spellcheck="false" aria-label="图表数据 JSON"></textarea>
+          <div class="chart-data-actions">
+            <button class="full-btn edit-only" id="applyChartData" type="button">应用图表数据</button>
+          </div>
+          <div class="drawer-note chart-data-status" id="chartDataStatus">修改 JSON 后点击“应用图表数据”。</div>
+        </div>
       </div>
-      <div class="control-group element-control-group" data-element-types="text" hidden>
-        <h4>文本样式</h4>
-        <label class="control-row"><span>字号</span><input class="edit-only" id="elementFontSize" type="number" min="8"><span>px</span></label>
-        <label class="control-row"><span>文字颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementColor" type="color"><input class="edit-only" type="text" data-color-target="elementColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
-        <label class="control-row"><span>字重</span><select class="edit-only" id="elementFontWeight"><option value="400">常规</option><option value="600">半粗</option><option value="700">粗体</option><option value="900">特粗</option></select><span></span></label>
-        <label class="control-row"><span>对齐</span><select class="edit-only" id="elementTextAlign"><option value="left">左</option><option value="center">中</option><option value="right">右</option></select><span></span></label>
-        <label class="control-row"><span>行高</span><input class="edit-only" id="elementLineHeight" type="number" min="1" max="3" step="0.05"><span></span></label>
-      </div>
-      <div class="control-group element-control-group" data-element-types="text shape" hidden>
-        <h4>框体样式</h4>
-        <label class="control-row"><span>背景</span><span class="color-input-wrap"><input class="edit-only" id="elementBackground" type="color"><input class="edit-only" type="text" data-color-target="elementBackground" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
-        <label class="control-row"><span>边框颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementBorderColor" type="color"><input class="edit-only" type="text" data-color-target="elementBorderColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
-        <label class="control-row"><span>边框宽度</span><input class="edit-only" id="elementBorderWidth" type="number" min="0" max="20"><span>px</span></label>
-        <label class="control-row"><span>圆角</span><input class="edit-only" id="elementBorderRadius" type="number" min="0" max="100"><span>px</span></label>
+    </div>
+    <div class="drawer-repair" aria-label="修复识别">
+      <div class="control-group repair-group" data-drawer-intent="recognition">
+        <h4>修复识别</h4>
+        <p class="drawer-group-help">当页面内容点不到、不能改时，用这里给漏识别元素补标。</p>
+        <button class="full-btn edit-only" id="pickRecognitionElement" type="button">选择页面元素</button>
+        <div class="drawer-note" id="recognitionCandidateLabel">待识别：未选择</div>
+        <div class="recognition-actions">
+          <button class="full-btn edit-only" type="button" data-recognition-type="text">文本</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="shape">矩形</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="chart">图表</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="image">图片</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="table">表格</button>
+        </div>
+        <div class="drawer-note recognition-status" id="recognitionStatus">编辑模式下可手动补充漏识别元素。</div>
       </div>
     </div>
     <div class="drawer-footer">
+      <div class="drawer-footer-title">
+        <h4>导出</h4>
+      </div>
       <div class="export-actions">
         <button id="downloadHtml" type="button">HTML</button>
         <button id="downloadLongPng" type="button" data-export-format="png">图片</button>
         <button id="downloadLongPdf" type="button" data-export-format="pdf">PDF</button>
+      </div>
+      <div class="drawer-about">
+        <a href="https://github.com/Lucas-Fong/html-report-stable-base" target="_blank" rel="noopener">GitHub 项目</a>
+        <span>Lucas Fong</span>
+        <span>MIT License</span>
+        <span>© 2026</span>
       </div>
     </div>
   </aside>
@@ -323,6 +362,7 @@
     let editMode = false;
 
     function setDrawerOpen(open) {
+      if (open) window.HTMLReportEditor?.refreshGlobalControlsFromComputedTypography?.();
       drawer.classList.toggle('open', open);
       document.body.classList.toggle('drawer-open', open);
     }
@@ -338,13 +378,17 @@
       const button = document.getElementById('editToggle');
       button.classList.toggle('active', enabled);
       button.textContent = enabled ? '保存修改' : '编辑模式';
-      if (!enabled) window.HTMLReportEditor?.selectElement(null);
+      if (!enabled) {
+        window.HTMLReportEditor?.setRecognitionPickMode?.(false);
+        window.HTMLReportEditor?.selectElement(null);
+      }
       window.HTMLReportEditor?.refreshTypographyLabels?.();
+      window.HTMLReportEditor?.refreshDataGroupAvailability?.();
     }
 
     document.getElementById('drawerToggle').onclick = () => setDrawerOpen(true);
     document.getElementById('closeDrawer').onclick = () => {
-      setEditMode(false);
+      if (editMode) setEditMode(false);
       setDrawerOpen(false);
     };
     document.getElementById('editToggle').onclick = () => setEditMode(!editMode);

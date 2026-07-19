@@ -1,9 +1,9 @@
 ---
-name: html-report-stable-base
+name: html-report
 description: "Use when supplied content or an existing HTML report needs a stable editable browser shell in either long-screen single-page mode or 16:9 PPT mode, including global and per-element styling, ECharts canvas support, standalone HTML delivery, or optional PPTX export in PPT mode."
 ---
 
-# HTML Report Stable Base
+# HTML Report
 
 ## Purpose
 
@@ -23,15 +23,21 @@ If the calling skill or model already declares the mode, use it. Otherwise ask t
 Both modes must keep:
 
 - a compact bottom-right gear and right-side drawer; drawer width is `320px` and the label column stays compact so inputs remain usable;
-- drawer control groups as collapsed accordion sections by default, with one visible section open at a time;
+- drawer control groups as collapsed accordion sections by default, with one visible section open at a time; both modes use task-oriented common groups named `浏览与模式`, `全局样式`, `对象编辑`, and `图表数据`; PPT mode also includes `表格设置`; both modes include a visually distinct fixed `修复识别` repair group above the `导出` footer;
+- each drawer group must include a short help sentence that explains when to use it;
 - an explicit edit-mode toggle;
-- global font family, L1/L2/L3/L4/metric/body/note sizes, body line-height, and table padding controls; L-levels map to HTML headings but avoid confusion with HTML tags. Use direct numeric inputs without `min`/`max`, not sliders;
+- global font family, L1/L2/L3/L4/metric/body/note sizes, body line-height, and table padding controls; the font-family control is a multiline textarea so long fallback stacks are editable; L-levels map to HTML headings but avoid confusion with HTML tags. Use direct numeric inputs without `min`/`max`, not sliders;
+- typography level badges shown in edit mode sit just outside each element's top-right corner, so the badge names the selected text level without covering the content box;
+- before editing or opening the drawer, global typography inputs must refresh from the currently rendered page values. For example, if the visible L1 element computes to `62px` while the template default is `60`, the L1 input must show `62` and user changes must start from `62`;
 - metric values such as `.metric .value`, `.metric strong`, or `[data-ppt-level="metric"]` follow `--metric-size`; labels and descriptions inside metric cards remain body text;
 - direct text editing only while edit mode is enabled;
 - per-element selection and independent inline styles;
+- `表格设置` and `图表数据` are separate context-aware groups: table controls are disabled until a table column/cell is selected or a table is manually recognized, while chart controls are disabled until an ECharts chart is selected or manually recognized; neither group is available while editing ordinary text, shape, or image elements;
 - color controls pair the native color swatch with a HEX text field that accepts pasted `#RGB` or `#RRGGBB` values;
 - a selected-element panel with a delete command, plus lightweight reset commands for global typography, dimensions, text styles, and box styles;
+- a manual recognition module in both `ppt` and `single-page` modes so users can select an unrecognized page element and mark it as text, shape, chart, image, or table; keep this module in the fixed repair area rather than mixed into common drawer controls;
 - recognizable icons for every drawer module;
+- a compact, low-contrast footer line at the bottom with the GitHub project link `https://github.com/Lucas-Fong/html-report-stable-base`, author `Lucas Fong`, `MIT License`, and `© 2026`, without repeating the same author/copyright text;
 - ECharts canvas rendering when supplied content includes charts.
 
 Mark independently editable elements with exactly one type:
@@ -49,12 +55,14 @@ Supported independent controls:
 |---|---|
 | `text` | width, height, font size, color, weight, alignment, line-height, background, border color/width, radius |
 | `shape` | width, height, fill, border color/width, radius |
-| `chart` | width and height; call the ECharts instance `resize()` after changes |
+| `chart` | width and height; call the ECharts instance `resize()` after changes; ECharts data JSON editor for `categories` / `series` and advanced `{ "option": {...} }` updates |
 | `image` | width and height; preserve its source and existing object-fit/aspect behavior |
 
 Only one element may be selected. Independent styles are written inline and override global variables only for that element. Width edits must work for inline text, flex children, and elements constrained by `max-width`; the editor may set `display:inline-block`, a matching flex basis, and `max-width:none` on the selected element. Do not add free dragging or absolute-position controls.
 
 Read `references/drawer-contract.md` when creating or adapting a template.
+
+When adapting an existing HTML report and the user asks to preserve the style, also read `references/existing-html-adaptation.md` before generating the model.
 
 ## Model Contract
 
@@ -153,42 +161,44 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
 1. Require a supplied content source; do not invent report content.
 2. Confirm `single-page` or `ppt` before generation.
-3. Build from the matching template and model, or preserve an existing report while adding the matching shell.
+3. Build from the matching template and model, or preserve an existing report while adding the matching shell. For existing HTML, use the adaptation fast path reference first.
 4. Add `.editable` to text content and `data-editable-element` to independently styled elements.
-5. In PPT mode, keep visible objects and `html-pptx-data` synchronized with `data-pptx-name`.
-6. Run the mode-aware static checker:
+5. Use real `<table>` markup for every table-like matrix/list comparison. Style it to look like a card or divider-only pseudo table when desired, but do not use div-only pseudo tables for editable table content.
+6. In PPT mode, keep visible objects and `html-pptx-data` synchronized with `data-pptx-name`.
+7. If any important content may have been missed, use the drawer's `补充识别` module in either mode: click `选择页面元素`, click the page element, then mark it as `文本` / `矩形` / `图表` / `图片` / `表格`.
+8. Run the mode-aware static checker:
 
    ```bash
    python <skill-root>/scripts/check_html_report.py <output>/index.html
    ```
 
-7. Run browser QA when Playwright is available:
+9. Run browser QA when Playwright is available:
 
    ```bash
    node <skill-root>/scripts/qa_html_report.mjs <output>/index.html
    ```
 
-8. Run the editable-base acceptance check. It covers drawer icons, edit/save labels, L-level controls, reset, delete, constrained element dimensions, and PPT export layout:
+10. Run the editable-base acceptance check. It covers drawer icons, edit/save labels, L-level controls, reset, delete, constrained element dimensions, manual recognition, ECharts data editing, and PPT export layout:
 
    ```bash
    node <skill-root>/scripts/qa_editor_enhancements.mjs <output>/index.html
    ```
 
-9. To enable high-fidelity click-triggered exports, start the local preview service and return its URL:
+11. To enable high-fidelity click-triggered exports, start the local preview service from a directory that contains `index.html`, and return its URL:
 
    ```bash
    node <skill-root>/scripts/start_html_report_preview.mjs <output> 5300
    ```
 
-   The service binds only to `127.0.0.1`. It writes PDF/PNG/PPTX outputs after user action into `<output>/exports/`; it never pre-generates exports or rewrites `<output>/index.html`.
+   The service binds only to `127.0.0.1`. It writes PDF/PNG/PPTX outputs after user action into `<output>/exports/`; it never pre-generates exports or rewrites `<output>/index.html`. If the port is busy, retry with the next nearby free port rather than stopping.
 
-10. Run the preview export acceptance check:
+12. Run the preview export acceptance check:
 
    ```bash
    node <skill-root>/scripts/qa_preview_export.mjs <output>/index.html
    ```
 
-11. Return `<output>/index.html` by default. Export standalone HTML only when requested:
+13. Return `<output>/index.html` by default. Export standalone HTML only when requested:
 
    ```bash
    python <skill-root>/scripts/export_html_report.py <output>/index.html --out-dir <output>/exports --formats html
@@ -196,7 +206,7 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
    PPT mode may additionally request `pdf,pptx`.
 
-12. For scripted, non-interactive single-page long image/PDF exports only, use Chromium screenshot export:
+14. For scripted, non-interactive single-page long image/PDF exports only, use Chromium screenshot export:
 
    ```bash
    node <skill-root>/scripts/export_single_page_long.mjs <output>/index.html <output>/exports
@@ -213,11 +223,14 @@ Block delivery when any applicable check fails:
 - drawer control groups are not collapsed by default or allow multiple visible sections to remain open;
 - independent edits affect unselected elements;
 - chart dimensions change without an ECharts resize;
+- ECharts data edits do not call `setOption()`, do not persist edited data on the chart element, or are lost by standalone HTML export;
 - single-page output lacks section navigation controls, uses nav labels longer than six Unicode characters, or contains PPT navigation, PPTX controls, or PPTX JSON;
 - single-page edit mode lacks any of the seven typography labels (L1/L2/L3/L4/指标/正文/备注), or metric labels/descriptions follow metric sizing instead of body sizing;
-- a drawer module lacks its icon, reset/delete behavior is unavailable, edit mode does not use `编辑模式` / `保存修改`, or constrained inline/flex/max-width element dimensions cannot be changed;
+- a drawer module lacks its icon, reset/delete behavior is unavailable, edit mode does not use `编辑模式` / `保存修改`, closing the drawer while editing does not first save/exit edit mode, global typography inputs do not start from the page's computed sizes, or constrained inline/flex/max-width element dimensions cannot be changed;
+- either mode lacks the task-oriented drawer groups, group help text, or the GitHub/author/license/copyright footer information;
 - the drawer is wider than `320px`, global controls use a slider or bounded numeric input, the PPT/adaptive toggle lacks its presentation icon, export buttons do not match their mode, either mode's HTML export lacks its modal editability choice, or preview-service exports do not reflect the submitted page snapshot;
 - color controls lack a pasted HEX path, or a valid HEX value fails to update only the selected element;
+- the `补充识别` module is unavailable in either mode, cannot mark unrecognized text as editable text, or cannot mark a real table's cells as editable;
 - PPT output loses its canvas, navigation, JSON contract, or object uniqueness;
 - standalone HTML loses edits/assets/section navigation state, displays the drawer/gear, writes visible `\n`, or keeps content after `</html>`.
 
@@ -236,3 +249,4 @@ Block delivery when any applicable check fails:
 - `scripts/start_html_report_preview.mjs`: localhost-only preview and click-triggered PNG/PDF/PPTX export service.
 - `scripts/qa_preview_export.mjs`: local preview export and HTML export-choice acceptance QA.
 - `references/drawer-contract.md`: shared drawer and selection protocol.
+- `references/existing-html-adaptation.md`: fast path for wrapping an existing styled HTML report without redesigning it.

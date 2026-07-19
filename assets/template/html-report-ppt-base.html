@@ -257,13 +257,13 @@
       transition: transform .22s ease;
       overflow: hidden;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto 1fr auto auto;
       font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
       font-size: 13px;
       line-height: 1.45;
     }
     .style-drawer.open { transform: translateX(0); }
-    .drawer-header, .drawer-footer { padding: 14px 18px; background: rgba(255,250,244,.98); }
+    .drawer-header, .drawer-footer, .drawer-repair { padding: 14px 18px; background: rgba(255,250,244,.98); }
     .drawer-header { border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
     .drawer-footer { border-top: 1px solid var(--line); display: grid; gap: 8px; box-shadow: 0 -10px 24px rgba(36,27,29,.08); }
     .drawer-footer .export-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
@@ -289,12 +289,27 @@
     .style-drawer h4 { margin: 0 0 8px; font-size: 15px; line-height: 1.3; color: var(--ink); }
     .control-group { align-self: start; min-height: 0; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; background: rgba(255,255,255,.72); }
     .control-row { display: grid; grid-template-columns: 68px minmax(0, 1fr) 24px; gap: 6px; align-items: center; font-size: 13px; }
-    .control-row input[type="number"], .control-row input[type="text"] { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .control-row input[type="number"], .control-row input[type="text"], .control-row textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
     .color-input-wrap { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 6px; align-items: center; }
     .color-input-wrap input[type="color"] { width: 34px; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 5px; background: #fff; }
     .color-input-wrap input[type="text"] { min-width: 0; text-transform: uppercase; }
     .control-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .mode-toggle-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+    .mode-toggle-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--wine);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, color .16s ease;
+    }
     .mode-toggle-button::before { width: 15px; height: 10px; border: 1.5px solid currentColor; border-radius: 2px; box-shadow: 0 7px 0 -5.5px currentColor; content: ''; }
     .mode-toggle-button.is-adaptive::before { width: 12px; height: 12px; border-radius: 50%; box-shadow: none; }
     .segmented-control { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -316,7 +331,9 @@
       padding: 7px 8px;
       cursor: pointer;
     }
+    #modeToggle:hover { border-color: var(--wine); background: #edf8f6; color: var(--wine); }
     #modeToggle.active { background: var(--wine); color: #fff; border-color: var(--wine); }
+    #modeToggle.active:hover { background: #24685f; color: #fff; }
     .segmented-control button.active { background: var(--wine); color: #fff; border-color: var(--wine); }
     .style-drawer .full-btn { width: 100%; }
     .drawer-header .full-btn { padding: 7px 10px; }
@@ -410,22 +427,24 @@
         <button class="close-icon-button" id="closeDrawer" type="button" aria-label="关闭抽屉">×</button>
       </div>
       <div class="control-actions">
-        <button id="modeToggle" class="mode-toggle-button active" title="切换演示模式">PPT模式</button>
         <button class="full-btn" id="editToggle">编辑模式</button>
       </div>
     </div>
     <div class="drawer-body">
-    <div class="control-group">
-      <h4>导航样式</h4>
+    <div class="control-group" data-drawer-intent="navigation">
+      <h4>浏览与模式</h4>
+      <p class="drawer-group-help">切换浏览方式、控制页码导航；查看和演示时优先使用。</p>
+      <button id="modeToggle" class="mode-toggle-button active" title="切换演示模式">PPT模式</button>
       <div class="segmented-control" id="navStyleControl" aria-label="导航样式">
         <button type="button" data-nav-style="hidden">不展示</button>
         <button type="button" data-nav-style="dots">小圆点</button>
         <button type="button" data-nav-style="numbered" class="active">序号</button>
       </div>
     </div>
-    <div class="control-group">
-      <h4>排版设置</h4>
-      <label class="control-row"><span>字体</span><input class="edit-only" id="fontFamily" type="text" value='"Microsoft YaHei", "微软雅黑", Arial, sans-serif'><span></span></label>
+    <div class="control-group" data-drawer-intent="global">
+      <h4>全局样式</h4>
+      <p class="drawer-group-help">统一调整整份报告的字体层级、正文行高和表格内边距。</p>
+      <label class="control-row control-row-textarea"><span>字体</span><textarea class="edit-only" id="fontFamily" rows="3" spellcheck="false">"Microsoft YaHei", "微软雅黑", Arial, sans-serif</textarea><span></span></label>
       <label class="control-row"><span>L1字号</span><input class="edit-only" data-global-var="--h1-size" type="number" value="60"><span>px</span></label>
       <label class="control-row"><span>L2字号</span><input class="edit-only" data-global-var="--h2-size" type="number" value="34"><span>px</span></label>
       <label class="control-row"><span>L3字号</span><input class="edit-only" data-global-var="--h3-size" type="number" value="20"><span>px</span></label>
@@ -434,43 +453,72 @@
       <label class="control-row"><span>正文字号</span><input class="edit-only" data-global-var="--body-size" type="number" value="14"><span>px</span></label>
       <label class="control-row"><span>备注字号</span><input class="edit-only" data-global-var="--note-size" type="number" value="12"><span>px</span></label>
       <label class="control-row"><span>行高</span><input class="edit-only" data-global-var="--body-line-height" data-unit="" type="number" value="1.55" step="0.05"><span></span></label>
-    </div>
-    <div class="control-group">
-      <h4>表格设置</h4>
       <label class="control-row"><span>表格上下</span><input class="edit-only" data-global-var="--table-cell-padding-y" type="number" value="8"><span>px</span></label>
       <label class="control-row"><span>表格左右</span><input class="edit-only" data-global-var="--table-cell-padding-x" type="number" value="10"><span>px</span></label>
-      <label class="control-row"><span>选中列宽</span><input class="edit-only" id="colWidth" type="number" min="24"><span>px</span></label>
-      <button class="full-btn edit-only" id="applyColWidth">应用列宽</button>
-      <div class="drawer-note">编辑模式下点击表头或表格单元格，可调整该列宽度。</div>
     </div>
-    <div class="control-group">
-      <h4>元素独立样式</h4>
+    <div class="control-group" data-drawer-intent="object">
+      <h4>对象编辑</h4>
+      <p class="drawer-group-help">只修改当前选中的文本、矩形、图片或图表尺寸与外观。</p>
       <div class="element-empty-state">开启编辑后，在页面中选择文本、矩形、图表或图片。</div>
       <div class="element-selected-state" hidden>
         <div class="selected-element-label" data-selected-element-label></div>
         <button class="full-btn edit-only danger-btn" id="deleteSelectedElement" type="button">删除元素</button>
       </div>
+      <div class="drawer-subgroup element-control-group" data-element-types="text shape chart image" hidden>
+        <h5>元素尺寸</h5>
+        <label class="control-row"><span>宽度</span><input class="edit-only" id="elementWidth" type="number" min="20"><span>px</span></label>
+        <label class="control-row"><span>高度</span><input class="edit-only" id="elementHeight" type="number" min="20"><span>px</span></label>
+      </div>
+      <div class="drawer-subgroup element-control-group" data-element-types="text" hidden>
+        <h5>文本样式</h5>
+        <label class="control-row"><span>字号</span><input class="edit-only" id="elementFontSize" type="number" min="8"><span>px</span></label>
+        <label class="control-row"><span>文字颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementColor" type="color"><input class="edit-only" type="text" data-color-target="elementColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
+        <label class="control-row"><span>字重</span><select class="edit-only" id="elementFontWeight"><option value="400">常规</option><option value="600">半粗</option><option value="700">粗体</option><option value="900">特粗</option></select><span></span></label>
+        <label class="control-row"><span>对齐</span><select class="edit-only" id="elementTextAlign"><option value="left">左</option><option value="center">中</option><option value="right">右</option></select><span></span></label>
+        <label class="control-row"><span>行高</span><input class="edit-only" id="elementLineHeight" type="number" min="1" max="3" step="0.05"><span></span></label>
+      </div>
+      <div class="drawer-subgroup element-control-group" data-element-types="text shape" hidden>
+        <h5>框体样式</h5>
+        <label class="control-row"><span>背景</span><span class="color-input-wrap"><input class="edit-only" id="elementBackground" type="color"><input class="edit-only" type="text" data-color-target="elementBackground" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
+        <label class="control-row"><span>边框颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementBorderColor" type="color"><input class="edit-only" type="text" data-color-target="elementBorderColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
+        <label class="control-row"><span>边框宽度</span><input class="edit-only" id="elementBorderWidth" type="number" min="0" max="20"><span>px</span></label>
+        <label class="control-row"><span>圆角</span><input class="edit-only" id="elementBorderRadius" type="number" min="0" max="100"><span>px</span></label>
+      </div>
     </div>
-    <div class="control-group element-control-group" data-element-types="text shape chart image" hidden>
-      <h4>元素尺寸</h4>
-      <label class="control-row"><span>宽度</span><input class="edit-only" id="elementWidth" type="number" min="20"><span>px</span></label>
-      <label class="control-row"><span>高度</span><input class="edit-only" id="elementHeight" type="number" min="20"><span>px</span></label>
+    <div class="control-group" data-drawer-intent="table">
+      <h4>表格设置</h4>
+      <p class="drawer-group-help">只调整真实表格的列宽；点击表格单元格后可用。</p>
+      <label class="control-row"><span>选中列宽</span><input class="edit-only" id="colWidth" type="number" min="24"><span>px</span></label>
+      <button class="full-btn edit-only" id="applyColWidth">应用列宽</button>
+      <div class="drawer-note">编辑模式下点击表头或表格单元格，可调整该列宽度。</div>
     </div>
-    <div class="control-group element-control-group" data-element-types="text" hidden>
-      <h4>文本样式</h4>
-      <label class="control-row"><span>字号</span><input class="edit-only" id="elementFontSize" type="number" min="8"><span>px</span></label>
-      <label class="control-row"><span>文字颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementColor" type="color"><input class="edit-only" type="text" data-color-target="elementColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
-      <label class="control-row"><span>字重</span><select class="edit-only" id="elementFontWeight"><option value="400">常规</option><option value="600">半粗</option><option value="700">粗体</option><option value="900">特粗</option></select><span></span></label>
-      <label class="control-row"><span>对齐</span><select class="edit-only" id="elementTextAlign"><option value="left">左</option><option value="center">中</option><option value="right">右</option></select><span></span></label>
-      <label class="control-row"><span>行高</span><input class="edit-only" id="elementLineHeight" type="number" min="1" max="3" step="0.05"><span></span></label>
+    <div class="control-group" data-drawer-intent="chart">
+      <h4>图表数据</h4>
+      <p class="drawer-group-help">只修改 ECharts 图表的 categories / series 或完整 option。</p>
+      <div class="drawer-subgroup element-control-group" data-element-types="chart">
+        <textarea class="edit-only chart-data-editor" id="chartDataEditor" spellcheck="false" aria-label="图表数据 JSON"></textarea>
+        <div class="chart-data-actions">
+          <button class="full-btn edit-only" id="applyChartData" type="button">应用图表数据</button>
+        </div>
+        <div class="drawer-note chart-data-status" id="chartDataStatus">修改 JSON 后点击“应用图表数据”。</div>
+      </div>
     </div>
-    <div class="control-group element-control-group" data-element-types="text shape" hidden>
-      <h4>框体样式</h4>
-      <label class="control-row"><span>背景</span><span class="color-input-wrap"><input class="edit-only" id="elementBackground" type="color"><input class="edit-only" type="text" data-color-target="elementBackground" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
-      <label class="control-row"><span>边框颜色</span><span class="color-input-wrap"><input class="edit-only" id="elementBorderColor" type="color"><input class="edit-only" type="text" data-color-target="elementBorderColor" placeholder="#FFFFFF" maxlength="7" spellcheck="false"></span><span></span></label>
-      <label class="control-row"><span>边框宽度</span><input class="edit-only" id="elementBorderWidth" type="number" min="0" max="20"><span>px</span></label>
-      <label class="control-row"><span>圆角</span><input class="edit-only" id="elementBorderRadius" type="number" min="0" max="100"><span>px</span></label>
     </div>
+    <div class="drawer-repair" aria-label="修复识别">
+      <div class="control-group repair-group" data-drawer-intent="recognition">
+        <h4>修复识别</h4>
+        <p class="drawer-group-help">当页面内容点不到、不能改时，用这里给漏识别元素补标。</p>
+        <button class="full-btn edit-only" id="pickRecognitionElement" type="button">选择页面元素</button>
+        <div class="drawer-note" id="recognitionCandidateLabel">待识别：未选择</div>
+        <div class="recognition-actions">
+          <button class="full-btn edit-only" type="button" data-recognition-type="text">文本</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="shape">矩形</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="chart">图表</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="image">图片</button>
+          <button class="full-btn edit-only" type="button" data-recognition-type="table">表格</button>
+        </div>
+        <div class="drawer-note recognition-status" id="recognitionStatus">编辑模式下可手动补充漏识别元素。</div>
+      </div>
     </div>
     <div class="drawer-footer" data-module-icon="⇩">
       <div class="drawer-footer-title" data-module-icon="⇩">
@@ -482,6 +530,12 @@
         <button id="downloadHtml">HTML</button>
         <button id="printPdf" data-export-format="pdf">PDF</button>
         <button id="exportPpt" data-export-format="pptx">PPTX</button>
+      </div>
+      <div class="drawer-about">
+        <a href="https://github.com/Lucas-Fong/html-report-stable-base" target="_blank" rel="noopener">GitHub 项目</a>
+        <span>Lucas Fong</span>
+        <span>MIT License</span>
+        <span>© 2026</span>
       </div>
     </div>
   </aside>
@@ -806,20 +860,17 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
         const labelRect = label.getBoundingClientRect();
         const viewportRight = Math.min(drawerLeft, window.innerWidth) - 8;
         const rightSideLeft = rect.right + 4;
-        const leftSideLeft = rect.left - labelRect.width - 4;
-        let left = rightSideLeft + labelRect.width <= viewportRight
-          ? rightSideLeft
-          : leftSideLeft >= 8
-            ? leftSideLeft
-            : Math.max(8, Math.min(rect.right - labelRect.width - 4, viewportRight - labelRect.width));
-        const top = Math.max(8, Math.min(rect.top + (rect.height - labelRect.height) / 2, window.innerHeight - labelRect.height - 8));
-        label.style.left = `${Math.round(left)}px`;
-        label.style.top = `${Math.round(top)}px`;
+        const position = window.HTMLReportEditor?.typographyLabelPosition
+          ? window.HTMLReportEditor.typographyLabelPosition(rect, labelRect, { viewportRight, minLeft: 8, minTop: 8 })
+          : { left: rightSideLeft, top: Math.max(8, rect.top - labelRect.height - 4) };
+        label.style.left = `${position.left}px`;
+        label.style.top = `${position.top}px`;
       });
     }
 
     function setEditMode(enabled) {
       editMode = enabled;
+      if (editMode) window.HTMLReportEditor?.refreshGlobalControlsFromComputedTypography?.();
       document.body.classList.toggle('edit-mode', editMode);
       document.querySelectorAll('.editable').forEach(el => {
         if (editMode) el.setAttribute('contenteditable', 'true');
@@ -829,14 +880,17 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       document.getElementById('editToggle').textContent = editMode ? '保存修改' : '编辑模式';
       document.querySelectorAll('.edit-only').forEach(el => el.disabled = !editMode);
       if (!editMode) {
+        window.HTMLReportEditor?.setRecognitionPickMode?.(false);
         if (selectedBox) selectedBox.classList.remove('selected-box');
         selectedBox = null;
         clearSelectedColumn();
         window.syncDeckJsonFromDom?.();
       }
+      window.HTMLReportEditor?.refreshDataGroupAvailability?.();
     }
 
     function setDrawerOpen(open) {
+      if (open) window.HTMLReportEditor?.refreshGlobalControlsFromComputedTypography?.();
       drawer.classList.toggle('open', open);
       document.body.classList.toggle('drawer-open', open);
       updateStageScale();
@@ -845,7 +899,10 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     }
 
     document.getElementById('drawerToggle').onclick = () => setDrawerOpen(!drawer.classList.contains('open'));
-    document.getElementById('closeDrawer').onclick = () => setDrawerOpen(false);
+    document.getElementById('closeDrawer').onclick = () => {
+      if (editMode) setEditMode(false);
+      setDrawerOpen(false);
+    };
     modeToggle.onclick = () => setMode(mode === 'ppt' ? 'adaptive' : 'ppt');
     document.getElementById('editToggle').onclick = () => setEditMode(!editMode);
     navStyleButtons.forEach(button => {
@@ -900,6 +957,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       selectedTable = null;
       selectedColIndex = null;
       document.getElementById('colWidth').value = '';
+      window.HTMLReportEditor?.setDataEditContext?.('');
     }
 
     function selectTableColumn(cell) {
@@ -908,8 +966,10 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       if (!table) return;
       ensureTableColgroups();
       clearSelectedColumn();
+      window.HTMLReportEditor?.selectElement?.(null);
       selectedTable = table;
       selectedColIndex = cell.cellIndex;
+      window.HTMLReportEditor?.setDataEditContext?.('table');
       table.querySelectorAll('tr').forEach(row => {
         const target = row.children[selectedColIndex];
         if (target) target.classList.add('selected-col');
@@ -921,6 +981,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
         ? Math.round(tableWidth * parseFloat(col.style.width) / 100)
         : Math.round((col?.getBoundingClientRect?.().width || cell.getBoundingClientRect().width) / scale);
       document.getElementById('colWidth').value = colWidth;
+      window.HTMLReportEditor?.openDrawerGroupByIntent?.('table');
     }
 
     document.querySelectorAll('table').forEach(table => {
@@ -1005,7 +1066,8 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       }));
     }
 
-    async function downloadStandaloneHtml(preserveEditing = false) {
+    async function downloadStandaloneHtml() {
+      const preserveEditing = arguments[0] === true;
       syncDeckJsonFromDom();
       const clone = document.documentElement.cloneNode(true);
       cleanStandaloneClone(clone, preserveEditing);
@@ -1099,7 +1161,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
 
     function createObjectFromElement(element, slide) {
       const type = objectTypeFromElement(element);
-      if (type === 'chart') return null;
       const obj = { type, name: element.dataset.pptxName };
       syncObjectGeometry(obj, element, slide);
       if (type === 'text') {
@@ -1122,9 +1183,9 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
         obj.src = element.getAttribute('src') || '';
       }
       if (type === 'chart') {
-        obj.chartType = 'bar';
-        obj.categories = [];
-        obj.series = [];
+        obj.chartType = 'echarts';
+        obj.chartData = element.dataset.chartData || '';
+        obj.chartOption = element.dataset.chartOption || '';
       }
       return obj;
     }
@@ -1140,7 +1201,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       ].join(',');
       const elements = [...slideEl.querySelectorAll(selector)].filter(element => {
         if (element.closest('table') && !element.matches('table') && !element.dataset.pptxName) return false;
-        return objectTypeFromElement(element) !== 'chart' || objectsByName.has(element.dataset.pptxName || '');
+        return true;
       });
       const seen = new Set();
       let autoIndex = 1;
@@ -1193,9 +1254,16 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
             obj.rows = rows;
             ensureTableColgroups();
             obj.columnWidths = [...element.querySelectorAll('col')].map(col => parseFloat(col.style.width) || 0);
-            obj.headerFill = getComputedStyle(element.querySelector('th')).backgroundColor;
-            obj.bodyFontSize = Math.round(pxNumber(getComputedStyle(element.querySelector('td')).fontSize, 14));
-            obj.headerFontSize = Math.round(pxNumber(getComputedStyle(element.querySelector('th')).fontSize, 14));
+            const headerCell = element.querySelector('th');
+            const bodyCell = element.querySelector('td') || headerCell;
+            if (headerCell) obj.headerFill = getComputedStyle(headerCell).backgroundColor;
+            if (bodyCell) obj.bodyFontSize = Math.round(pxNumber(getComputedStyle(bodyCell).fontSize, 14));
+            if (headerCell) obj.headerFontSize = Math.round(pxNumber(getComputedStyle(headerCell).fontSize, 14));
+          }
+          if (obj.type === 'chart') {
+            obj.chartType = 'echarts';
+            obj.chartData = element.dataset.chartData || obj.chartData || '';
+            obj.chartOption = element.dataset.chartOption || obj.chartOption || '';
           }
         });
         const presentNames = new Set(exportableElementsForSlide(slideEl, slideIndex, objectsByName).map(element => element.dataset.pptxName));

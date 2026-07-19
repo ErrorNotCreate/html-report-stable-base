@@ -292,6 +292,8 @@ def parse_color(value: str | None, fallback: str = "#000000") -> RGBColor:
         color = color[1:]
     if len(color) == 3:
         color = "".join(ch * 2 for ch in color)
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", color):
+        return parse_color(fallback, "#000000")
     return RGBColor(int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16))
 
 
