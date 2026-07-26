@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for HTML Report Stable Base modes and editor contract."""
+"""Regression checks for HTML Report modes and editor contract."""
 
 from __future__ import annotations
 
