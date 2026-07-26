@@ -14,7 +14,7 @@ Provide a content-neutral HTML report foundation. The calling skill, existing re
 Every new report must explicitly use one mode:
 
 - `single-page`: one vertically scrolling, fluid HTML report. It supports editing, standalone HTML export, and click-triggered long PNG / one-page long PDF export through the local preview service.
-- `ppt`: a slide deck with a fixed `1440 × 810` canvas, navigation, optional adaptive browsing, `html-pptx-data`, and click-triggered PDF/PPTX export through the local preview service.
+- `ppt`: a slide deck with a fixed `1440 × 810` canvas, navigation, optional adaptive browsing, `html-pptx-data`, and click-triggered PDF/PPTX export through the local preview service. The PDF button exports the current edited browser snapshot, with each `.slide` captured as one PDF page.
 
 If the calling skill or model already declares the mode, use it. Otherwise ask the calling skill or user before generating files. Do not infer or default the mode.
 
@@ -153,7 +153,7 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 - Keep the fixed `1440 × 810` canvas, equal left/right margins, page navigation, PPT/adaptive browsing, table column controls, and geometry scaling.
 - The PPT/adaptive toggle uses a compact presentation-canvas icon, not a Unicode box-character icon.
 - Keep `html-pptx-data`, unique per-slide object names, DOM-to-JSON synchronization, and editable PPTX export.
-- Keep `HTML / PDF / PPTX` export buttons. HTML must let the user choose `保留编辑` or `仅查看`; PDF and PPTX are generated only after the user clicks them in the local preview service.
+- Keep `HTML / PDF / PPTX` export buttons. HTML must let the user choose `保留编辑` or `仅查看`; PDF and PPTX are generated only after the user clicks them in the local preview service. PDF/PPTX clicks must first synchronize DOM edits into `html-pptx-data`, submit the current `documentElement` snapshot to `/api/export`, and write outputs into `<output>/exports/`; PDF output must contain exactly one page per `.slide`.
 - Page furniture such as kickers, footers, and page numbers remains fixed, non-editable, and `12px`/`12pt`.
 - Browser standalone HTML export must preserve edits and charts while hiding the drawer and gear.
 
@@ -172,13 +172,13 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
    python <skill-root>/scripts/check_html_report.py <output>/index.html
    ```
 
-9. Run browser QA when Playwright is available:
+9. Run browser QA when Playwright is available and the change affects layout, editing, export controls, charts, or browser behavior:
 
    ```bash
    node <skill-root>/scripts/qa_html_report.mjs <output>/index.html
    ```
 
-10. Run the editable-base acceptance check. It covers drawer icons, edit/save labels, L-level controls, reset, delete, constrained element dimensions, manual recognition, ECharts data editing, and PPT export layout:
+10. Run the editable-base acceptance check when the change touches the editor shell, drawer controls, element styling, chart/table editing, or PPT export layout. It covers drawer icons, edit/save labels, L-level controls, reset, delete, constrained element dimensions, manual recognition, ECharts data editing, and PPT export layout:
 
    ```bash
    node <skill-root>/scripts/qa_editor_enhancements.mjs <output>/index.html
@@ -192,11 +192,13 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
    The service binds only to `127.0.0.1`. It writes PDF/PNG/PPTX outputs after user action into `<output>/exports/`; it never pre-generates exports or rewrites `<output>/index.html`. If the port is busy, retry with the next nearby free port rather than stopping.
 
-12. Run the preview export acceptance check:
+12. Run the preview export acceptance check when changing export buttons, the preview service, snapshot cleanup, PDF/PNG/PPTX output, or before releasing the skill:
 
    ```bash
    node <skill-root>/scripts/qa_preview_export.mjs <output>/index.html
    ```
+
+   This is intentionally heavier than the static checker because it starts the preview service and exercises Chromium-backed exports. Do not run it as a default generation step for every ordinary report unless export behavior changed or the user needs immediate export verification.
 
 13. Return `<output>/index.html` by default. Export standalone HTML only when requested:
 
@@ -214,6 +216,18 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
    This produces `<output>/exports/index-long.png` and `<output>/exports/index-long.pdf`; it is not the default UI flow.
 
+## Performance Notes
+
+HTML generation is usually fast; slow runs come from verification/export stages rather than the model builder. The common causes are:
+
+- repeated Chromium startup in Playwright QA or export scripts;
+- PPT PDF export screenshotting each slide at high device scale;
+- PPTX export synchronizing DOM geometry through a browser before writing structured slides;
+- standalone HTML export inlining large local scripts, charts, images, or data assets;
+- running `qa_html_report.mjs`, `qa_editor_enhancements.mjs`, and `qa_preview_export.mjs` serially for every report.
+
+Default report delivery should run the static checker and only the browser checks that match the changed surface. Start `start_html_report_preview.mjs` for user-facing preview/export, because the service keeps Chromium warm for click-triggered PNG/PDF exports and reuses the submitted `html-pptx-data` for PPTX instead of launching another browser sync. Use `qa_preview_export.mjs` for release/export changes, not as a mandatory generation-time pre-export.
+
 ## Quality Gate
 
 Block delivery when any applicable check fails:
@@ -228,7 +242,7 @@ Block delivery when any applicable check fails:
 - single-page edit mode lacks any of the seven typography labels (L1/L2/L3/L4/指标/正文/备注), or metric labels/descriptions follow metric sizing instead of body sizing;
 - a drawer module lacks its icon, reset/delete behavior is unavailable, edit mode does not use `编辑模式` / `保存修改`, closing the drawer while editing does not first save/exit edit mode, global typography inputs do not start from the page's computed sizes, or constrained inline/flex/max-width element dimensions cannot be changed;
 - either mode lacks the task-oriented drawer groups, group help text, or the GitHub/author/license/copyright footer information;
-- the drawer is wider than `320px`, global controls use a slider or bounded numeric input, the PPT/adaptive toggle lacks its presentation icon, export buttons do not match their mode, either mode's HTML export lacks its modal editability choice, or preview-service exports do not reflect the submitted page snapshot;
+- the drawer is wider than `320px`, global controls use a slider or bounded numeric input, the PPT/adaptive toggle lacks its presentation icon, export buttons do not match their mode, either mode's HTML export lacks its modal editability choice, PPT PDF export does not submit the updated browser snapshot, PPT PDF output does not contain one page per slide, or preview-service exports do not reflect the submitted page snapshot;
 - color controls lack a pasted HEX path, or a valid HEX value fails to update only the selected element;
 - the `补充识别` module is unavailable in either mode, cannot mark unrecognized text as editable text, or cannot mark a real table's cells as editable;
 - PPT output loses its canvas, navigation, JSON contract, or object uniqueness;

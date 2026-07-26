@@ -378,6 +378,11 @@ if (mode === 'single-page') {
 
   const exportedStates = {};
   for (const style of ['right', 'left', 'hidden']) {
+    await page.evaluate(() => {
+      window.HTMLReportEditor?.openDrawerGroupByIntent?.('navigation');
+    });
+    if (!(await page.locator('#styleDrawer').evaluate(element => element.classList.contains('open')))) await page.click('#drawerToggle');
+    await page.evaluate(() => window.HTMLReportEditor?.openDrawerGroupByIntent?.('navigation'));
     await page.click(`[data-section-nav-style="${style}"]`);
     const exported = await exportStandalone(page, browser, `${style}.html`);
     exportedStates[style] = await exported.evaluate(expectedStyle => ({

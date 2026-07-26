@@ -35,6 +35,10 @@ const waitForReady = async () => {
   throw new Error(`preview server did not start: ${logs.join('')}`);
 };
 
+function pdfPageCount(buffer) {
+  return (buffer.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
+}
+
 try {
   await waitForReady();
   const snapshot = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
@@ -47,8 +51,11 @@ try {
   const result = await response.json();
   if (!response.ok || !result.downloadUrl || !result.fileName) throw new Error(`export endpoint failed: ${JSON.stringify(result)}`);
   const download = await fetch(`http://127.0.0.1:${port}${result.downloadUrl}`);
-  if (!download.ok || (await download.arrayBuffer()).byteLength < 100) throw new Error('generated export download is unavailable');
+  const downloadBuffer = Buffer.from(await download.arrayBuffer());
+  if (!download.ok || downloadBuffer.byteLength < 100) throw new Error('generated export download is unavailable');
   if (mode === 'ppt') {
+    const slideCount = (snapshot.match(/class="[^"]*\bslide\b/g) || []).length;
+    if (pdfPageCount(downloadBuffer) !== slideCount) throw new Error('PPT PDF export must contain one page per slide');
     const pptxResponse = await fetch(`http://127.0.0.1:${port}/api/export`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -76,6 +83,30 @@ try {
   if (mode === 'single-page' && ui.exports.join(',') !== 'downloadHtml,downloadLongPng,downloadLongPdf') throw new Error(`single export UI contract failed: ${JSON.stringify(ui)}`);
   if (mode === 'single-page' && (!ui.htmlChoice || !ui.htmlChoiceIsModal)) throw new Error(`single HTML export modal is missing: ${JSON.stringify(ui)}`);
   if (mode === 'ppt') {
+    const updatedText = `按钮级PDF验收-${Date.now()}`;
+    let postedSnapshot = '';
+    await page.route('**/api/export', async route => {
+      postedSnapshot = route.request().postData() || '';
+      await route.continue();
+    });
+    await page.locator('.slide.active-slide [data-pptx-name], .slide.active-slide .editable').first().evaluate((element, text) => {
+      element.textContent = text;
+    }, updatedText);
+    const [pdfDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#printPdf'),
+    ]);
+    const pdfPath = path.join(os.tmpdir(), `html-report-button-${Date.now()}.pdf`);
+    await pdfDownload.saveAs(pdfPath);
+    const exportedPdf = fs.readFileSync(pdfPath);
+    if (pdfPageCount(exportedPdf) !== await page.locator('.slide').count()) throw new Error('button PDF export must create one PDF page per slide');
+    const payload = JSON.parse(postedSnapshot || '{}');
+    if (payload.format !== 'pdf' || payload.mode !== 'ppt') throw new Error(`button PDF request used the wrong mode/format: ${postedSnapshot}`);
+    if (!payload.html?.includes(updatedText)) throw new Error('button PDF export did not submit the edited DOM snapshot');
+    const jsonMatch = payload.html.match(/<script[^>]+id=["']html-pptx-data["'][^>]*>([\s\S]*?)<\/script>/i);
+    if (!jsonMatch || !jsonMatch[1].includes(updatedText)) throw new Error('button PDF export must sync html-pptx-data before submitting the snapshot');
+    fs.rmSync(pdfPath, { force: true });
+
     await page.click('#downloadHtml');
     const [editableDownload] = await Promise.all([
       page.waitForEvent('download'),

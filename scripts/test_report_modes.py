@@ -245,6 +245,16 @@ def test_shared_editor_contract() -> None:
     assert_true("Array.from(String(title" in source and ".slice(0, 6)" in source, "single-page section nav labels must truncate by Unicode characters")
     for style in ("hidden", "left", "right"):
         assert_true(f"'{style}'" in source, f"single-page nav logic must support {style}")
+    assert_true("window.syncDeckJsonFromDom?.();" in source, "instant PDF/PPTX export snapshots must sync PPT DOM changes first")
+
+
+def test_preview_service_reuses_browser_for_exports() -> None:
+    source = (ROOT / "scripts" / "start_html_report_preview.mjs").read_text(encoding="utf-8")
+    assert_true("let browserPromise" in source, "preview service must keep a browser promise for repeated click exports")
+    assert_true("chromium.launch" in source and "if (!browserPromise)" in source, "preview service must launch Chromium lazily and reuse it")
+    assert_true("capturePptPdf" in source and "jpegImagesToPdf" in source, "preview service must export PPT PDFs without spawning the Python screenshot path")
+    assert_true("captureSinglePage" in source, "preview service must export single-page PNG/PDF through the shared browser")
+    assert_true("extractPptxData" in source and "--deck-json" in source, "preview service must reuse the submitted PPTX JSON instead of launching another browser sync")
 
 
 def test_shared_accordion_contract() -> None:
@@ -306,6 +316,7 @@ def main() -> int:
         test_ppt_export_syncs_missing_named_dom_objects,
         test_ppt_export_syncs_unnamed_editable_dom_objects,
         test_shared_editor_contract,
+        test_preview_service_reuses_browser_for_exports,
         test_shared_accordion_contract,
         test_ppt_drawer_accordion_groups_do_not_stretch,
         test_metric_typography_is_a_seventh_global_level,

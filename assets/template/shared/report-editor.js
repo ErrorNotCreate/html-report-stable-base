@@ -984,6 +984,7 @@
 
   function exportSnapshotHtml() {
     selectElement(null);
+    window.syncDeckJsonFromDom?.();
     const clone = document.documentElement.cloneNode(true);
     clone.querySelectorAll('[contenteditable]').forEach(element => element.removeAttribute('contenteditable'));
     clone.querySelectorAll('.selected-element, .selected-box, .selected-col').forEach(element => {
