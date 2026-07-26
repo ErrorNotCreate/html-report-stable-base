@@ -1,0 +1,4 @@
+interface:
+  display_name: "ECharts 图表生成"
+  short_description: "用 ECharts 生成交互式 HTML 图表"
+  default_prompt: "使用 $echarts-charts 根据我的数据生成交互式 ECharts 图表。"

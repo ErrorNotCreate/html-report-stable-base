@@ -2,7 +2,7 @@
 
 [中文说明](README.zh-CN.md)
 
-Codex skill for building stable, editable HTML reports from supplied content or existing HTML. It supports long scrolling reports and fixed 16:9 HTML decks, with a shared style drawer, per-element editing, browser QA, and click-triggered exports.
+Codex skill for building stable, editable HTML reports from supplied content or existing HTML. It supports long scrolling reports and fixed 16:9 HTML decks, with a shared style drawer, per-element editing, browser QA, click-triggered exports, and bundled ECharts / word-cloud helper skills.
 
 ## Visual Examples
 
@@ -25,8 +25,19 @@ Use `ppt` when the output should behave like a slide deck with a fixed `1440 × 
 - HEX color text inputs paired with native color swatches.
 - Single-page section navigation or PPT slide navigation.
 - ECharts-friendly chart resizing.
+- Bundled `echarts-charts` and `generate-word-clouds` skills for chart HTML/options and PNG word-cloud assets.
 - Standalone HTML export that can keep editing controls or export view-only output.
 - Local preview service for high-fidelity image, PDF, and PPTX generation after user action.
+
+## Dependencies
+
+For a newly installed environment, run the bootstrap once before browser QA, image/PDF/PPTX export, or word-cloud generation:
+
+```bash
+node scripts/bootstrap_html_report_deps.mjs
+```
+
+It installs Node dependencies (`playwright`, `sharp`), creates `.venv` for Python dependencies from `requirements.txt`, and installs Playwright Chromium. The repository tracks lockfiles and dependency manifests, not `node_modules/`, `.venv/`, or browser binaries. If the system `python` lacks dependencies after bootstrapping, run Python scripts with `.venv/bin/python`.
 
 ## Quick Start
 
@@ -67,7 +78,7 @@ Public GitHub search can also find this repository through topics such as `codex
 
 ## Install As A Codex Plugin
 
-This repository also includes a plugin manifest at `.codex-plugin/plugin.json`, so it can be distributed as a Codex plugin. The plugin exposes the same `html-report` skill through `skills/html-report/SKILL.md` and keeps the templates, scripts, references, fixtures, and examples at the repository root.
+This repository also includes a plugin manifest at `.codex-plugin/plugin.json`, so it can be distributed as a Codex plugin. The plugin exposes `html-report`, `echarts-charts`, and `generate-word-clouds` through `skills/`, while keeping the report templates, scripts, references, fixtures, and examples at the repository root.
 
 Use this path when you want Codex plugin discovery, plugin cards, default prompts, metadata, and marketplace distribution instead of only direct skill installation.
 
@@ -136,11 +147,14 @@ Every independently editable element must declare exactly one type.
 - `SKILL.md`: full skill contract and workflow.
 - `.codex-plugin/plugin.json`: Codex plugin metadata for discovery and marketplace distribution.
 - `skills/html-report/`: plugin-facing wrapper skill entry.
+- `skills/echarts-charts/`: bundled ECharts chart generation skill.
+- `skills/generate-word-clouds/`: bundled PNG word-cloud generation skill.
 - `assets/examples/`: README and skill documentation visuals.
 - `assets/template/`: single-page and PPT templates plus shared editor assets.
 - `fixtures/`: acceptance fixtures for editor behavior.
 - `references/`: supporting contracts, including drawer and element rules.
 - `scripts/`: builder, validators, QA checks, preview server, and export utilities.
+- `requirements.txt`: Python dependency list used by the bootstrap script.
 
 ## Versioning Notes
 

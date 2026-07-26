@@ -1,0 +1,4 @@
+interface:
+  display_name: "品牌词云生成器"
+  short_description: "根据关键词权重批量生成品牌官方配色的透明词云 PNG"
+  default_prompt: "使用 $generate-word-clouds 根据我的关键词列表生成品牌词云。"

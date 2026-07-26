@@ -20,6 +20,7 @@ SINGLE_TEMPLATE = ROOT / "assets" / "template" / "html-report-single-base.html"
 PPT_TEMPLATE = ROOT / "assets" / "template" / "html-report-ppt-base.html"
 EDITOR_JS = ROOT / "assets" / "template" / "shared" / "report-editor.js"
 EDITOR_CSS = ROOT / "assets" / "template" / "shared" / "report-editor.css"
+PLUGIN_MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 
 
 def run_builder(model: dict, template: Path, output: Path) -> subprocess.CompletedProcess[str]:
@@ -308,6 +309,43 @@ def test_metric_typography_is_a_seventh_global_level() -> None:
     assert_true("obj.pptLevel = 'metric'" in ppt, "PPT DOM sync must export metric-card text as metric typography")
 
 
+def test_plugin_bundles_chart_and_word_cloud_skills() -> None:
+    manifest = json.loads(PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+    assert_true(manifest["skills"] == "./skills/", "plugin manifest must expose the bundled skills directory")
+    for skill_name in ("html-report", "generate-word-clouds", "echarts-charts"):
+        skill_dir = ROOT / "skills" / skill_name
+        skill_file = skill_dir / "SKILL.md"
+        assert_true(skill_file.exists(), f"plugin package must bundle {skill_name}/SKILL.md")
+        source = skill_file.read_text(encoding="utf-8")
+        assert_true(f"name: {skill_name}" in source, f"{skill_name} must keep its discoverable skill name")
+
+    for relative_path in (
+        "skills/generate-word-clouds/scripts/generate_word_clouds.mjs",
+        "skills/generate-word-clouds/scripts/extract_xlsx.py",
+        "skills/generate-word-clouds/references/confirmation.md",
+        "skills/generate-word-clouds/references/brand_palettes.json",
+        "skills/echarts-charts/scripts/render_echarts_html.mjs",
+        "skills/echarts-charts/references/option-patterns.md",
+        "skills/echarts-charts/references/official-links.md",
+    ):
+        assert_true((ROOT / relative_path).exists(), f"bundled helper is missing: {relative_path}")
+
+
+def test_dependency_bootstrap_contract() -> None:
+    package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+    dependencies = package.get("dependencies", {})
+    assert_true("playwright" in dependencies, "Node Playwright must be a bundled dependency for browser QA and export")
+    assert_true("sharp" in dependencies, "sharp must be a bundled dependency for word-cloud PNG generation")
+
+    requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+    for requirement in ("playwright", "python-pptx", "pillow", "openpyxl"):
+        assert_true(requirement in requirements.lower(), f"Python dependency must be listed: {requirement}")
+
+    bootstrap = (ROOT / "scripts" / "bootstrap_html_report_deps.mjs").read_text(encoding="utf-8")
+    for token in ("npm install", "pip install", "playwright install chromium"):
+        assert_true(token in bootstrap, f"bootstrap script must cover {token}")
+
+
 def main() -> int:
     tests = [
         test_mode_is_required,
@@ -320,6 +358,8 @@ def main() -> int:
         test_shared_accordion_contract,
         test_ppt_drawer_accordion_groups_do_not_stretch,
         test_metric_typography_is_a_seventh_global_level,
+        test_plugin_bundles_chart_and_word_cloud_skills,
+        test_dependency_bootstrap_contract,
     ]
     for test in tests:
         test()

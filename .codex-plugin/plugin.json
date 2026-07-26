@@ -1,7 +1,7 @@
 {
   "name": "html-report",
-  "version": "0.3.0",
-  "description": "Build stable editable HTML reports in single-page and PPT modes with style controls, QA, and exports.",
+  "version": "0.4.0",
+  "description": "Build stable editable HTML reports, ECharts charts, and word-cloud assets with style controls, QA, and exports.",
   "author": {
     "name": "Lucas Fong",
     "url": "https://github.com/Lucas-Fong"
@@ -17,13 +17,15 @@
     "editable-report",
     "report-generator",
     "presentation",
-    "browser-qa"
+    "browser-qa",
+    "echarts",
+    "word-cloud"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HTML Report",
-    "shortDescription": "Build editable HTML reports and HTML PPT decks",
-    "longDescription": "Use HTML Report to turn supplied content or existing HTML into stable editable reports. It supports long single-page reports, fixed 16:9 HTML PPT decks, a right-side style drawer, per-element editing, browser QA, and click-triggered HTML, image, PDF, and PPTX exports.",
+    "shortDescription": "Build editable HTML reports, charts, and word clouds",
+    "longDescription": "Use HTML Report to turn supplied content or existing HTML into stable editable reports. It supports long single-page reports, fixed 16:9 HTML PPT decks, a right-side style drawer, per-element editing, bundled ECharts and word-cloud generation skills, browser QA, and click-triggered HTML, image, PDF, and PPTX exports.",
     "developerName": "Lucas Fong",
     "category": "Productivity",
     "capabilities": [
@@ -37,7 +39,8 @@
     "defaultPrompt": [
       "Create an editable single-page HTML report from this document.",
       "Convert this HTML report into the stable editable shell.",
-      "Build a 16:9 editable HTML PPT deck from this outline."
+      "Build a 16:9 editable HTML PPT deck from this outline.",
+      "Create ECharts visuals or word-cloud PNG assets for this report."
     ],
     "brandColor": "#1E5AA8",
     "screenshots": []

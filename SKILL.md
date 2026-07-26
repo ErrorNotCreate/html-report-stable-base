@@ -82,6 +82,17 @@ For `single-page`, use sections without PPTX objects:
 
 Each section may include optional `id`, `title`, and `class`; `html` is required. The builder must reject a missing or invalid mode rather than choosing one.
 
+## Bundled Asset Skills
+
+The plugin distribution also bundles two independent helper skills under `skills/`:
+
+- `skills/echarts-charts`: use when supplied report data needs a standalone ECharts HTML chart, an ECharts `option`, or an embeddable chart asset.
+- `skills/generate-word-clouds`: use when supplied keyword/weight data needs one or more horizontal PNG word clouds.
+
+When a report needs these assets, read the bundled helper skill first and resolve its `scripts/` and `references/` paths relative to that helper skill directory. Insert generated chart HTML/options or PNG files into the HTML report model only after the helper output exists.
+
+For a fresh environment, run `node <skill-root>/scripts/bootstrap_html_report_deps.mjs` before browser export, browser QA, PPTX export, or word-cloud generation if Node/Python dependencies or Chromium are missing. The bootstrap installs Node dependencies, creates `<skill-root>/.venv` for Python dependencies, and installs Playwright Chromium for this plugin. If the system `python` lacks dependencies after bootstrapping, use `<skill-root>/.venv/bin/python` for Python commands.
+
 ## Visual Examples
 
 Use these visuals as orientation for authors who are applying the skill to new content or adapting an existing report. They are examples of the shell and interaction pattern only; do not copy their dummy content into a report.
@@ -166,25 +177,31 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 5. Use real `<table>` markup for every table-like matrix/list comparison. Style it to look like a card or divider-only pseudo table when desired, but do not use div-only pseudo tables for editable table content.
 6. In PPT mode, keep visible objects and `html-pptx-data` synchronized with `data-pptx-name`.
 7. If any important content may have been missed, use the drawer's `补充识别` module in either mode: click `选择页面元素`, click the page element, then mark it as `文本` / `矩形` / `图表` / `图片` / `表格`.
-8. Run the mode-aware static checker:
+8. If dependencies are missing in a newly installed environment, bootstrap them once:
+
+   ```bash
+   node <skill-root>/scripts/bootstrap_html_report_deps.mjs
+   ```
+
+9. Run the mode-aware static checker:
 
    ```bash
    python <skill-root>/scripts/check_html_report.py <output>/index.html
    ```
 
-9. Run browser QA when Playwright is available and the change affects layout, editing, export controls, charts, or browser behavior:
+10. Run browser QA when Playwright is available and the change affects layout, editing, export controls, charts, or browser behavior:
 
    ```bash
    node <skill-root>/scripts/qa_html_report.mjs <output>/index.html
    ```
 
-10. Run the editable-base acceptance check when the change touches the editor shell, drawer controls, element styling, chart/table editing, or PPT export layout. It covers drawer icons, edit/save labels, L-level controls, reset, delete, constrained element dimensions, manual recognition, ECharts data editing, and PPT export layout:
+11. Run the editable-base acceptance check when the change touches the editor shell, drawer controls, element styling, chart/table editing, or PPT export layout. It covers drawer icons, edit/save labels, L-level controls, reset, delete, constrained element dimensions, manual recognition, ECharts data editing, and PPT export layout:
 
    ```bash
    node <skill-root>/scripts/qa_editor_enhancements.mjs <output>/index.html
    ```
 
-11. To enable high-fidelity click-triggered exports, start the local preview service from a directory that contains `index.html`, and return its URL:
+12. To enable high-fidelity click-triggered exports, start the local preview service from a directory that contains `index.html`, and return its URL:
 
    ```bash
    node <skill-root>/scripts/start_html_report_preview.mjs <output> 5300
@@ -192,7 +209,7 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
    The service binds only to `127.0.0.1`. It writes PDF/PNG/PPTX outputs after user action into `<output>/exports/`; it never pre-generates exports or rewrites `<output>/index.html`. If the port is busy, retry with the next nearby free port rather than stopping.
 
-12. Run the preview export acceptance check when changing export buttons, the preview service, snapshot cleanup, PDF/PNG/PPTX output, or before releasing the skill:
+13. Run the preview export acceptance check when changing export buttons, the preview service, snapshot cleanup, PDF/PNG/PPTX output, or before releasing the skill:
 
    ```bash
    node <skill-root>/scripts/qa_preview_export.mjs <output>/index.html
@@ -200,7 +217,7 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
    This is intentionally heavier than the static checker because it starts the preview service and exercises Chromium-backed exports. Do not run it as a default generation step for every ordinary report unless export behavior changed or the user needs immediate export verification.
 
-13. Return `<output>/index.html` by default. Export standalone HTML only when requested:
+14. Return `<output>/index.html` by default. Export standalone HTML only when requested:
 
    ```bash
    python <skill-root>/scripts/export_html_report.py <output>/index.html --out-dir <output>/exports --formats html
@@ -208,7 +225,7 @@ If a future update adds a workflow GIF or screenshot, store it in `assets/exampl
 
    PPT mode may additionally request `pdf,pptx`.
 
-14. For scripted, non-interactive single-page long image/PDF exports only, use Chromium screenshot export:
+15. For scripted, non-interactive single-page long image/PDF exports only, use Chromium screenshot export:
 
    ```bash
    node <skill-root>/scripts/export_single_page_long.mjs <output>/index.html <output>/exports
@@ -261,6 +278,10 @@ Block delivery when any applicable check fails:
 - `scripts/export_html_report.py`: standalone HTML and PPT-mode PDF/PPTX export.
 - `scripts/export_single_page_long.mjs`: single-page Chromium-rendered long PNG and one-page long PDF export.
 - `scripts/start_html_report_preview.mjs`: localhost-only preview and click-triggered PNG/PDF/PPTX export service.
+- `scripts/bootstrap_html_report_deps.mjs`: installs plugin Node/Python dependencies and Playwright Chromium when a new environment lacks them.
 - `scripts/qa_preview_export.mjs`: local preview export and HTML export-choice acceptance QA.
+- `requirements.txt`: Python dependencies for PPTX export, browser export, Excel extraction, and image handling.
+- `skills/echarts-charts`: bundled ECharts helper skill with its own scripts and references.
+- `skills/generate-word-clouds`: bundled word-cloud helper skill with its own scripts and references.
 - `references/drawer-contract.md`: shared drawer and selection protocol.
 - `references/existing-html-adaptation.md`: fast path for wrapping an existing styled HTML report without redesigning it.

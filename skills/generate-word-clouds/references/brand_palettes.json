@@ -1,0 +1,14 @@
+{
+  "老庙": {
+    "palette": ["#DA251D", "#B3121F", "#54403E", "#967317", "#E4C89C"],
+    "source": "https://www.laomiao.com.cn/",
+    "basis": "从官方网站 CSS 与 Logo 素材提取",
+    "verified": "2026-06-13"
+  },
+  "潮宏基": {
+    "palette": ["#C39C48", "#DAC17F", "#EEC865", "#666C67", "#272727"],
+    "source": "https://www.chjchina.com/",
+    "basis": "从官方网站 CSS 与 Logo 素材提取",
+    "verified": "2026-06-13"
+  }
+}

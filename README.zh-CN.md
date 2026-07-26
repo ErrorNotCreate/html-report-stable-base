@@ -1,6 +1,6 @@
 # html-report
 
-这是一个用于生成稳定、可编辑 HTML 报告的 Codex skill。它可以把已有内容或已有 HTML 报告包装成统一的编辑壳，支持长屏单页报告和固定 16:9 的 HTML PPT，并提供右侧样式抽屉、元素级编辑、浏览器验收和点击触发导出。
+这是一个用于生成稳定、可编辑 HTML 报告的 Codex skill。它可以把已有内容或已有 HTML 报告包装成统一的编辑壳，支持长屏单页报告和固定 16:9 的 HTML PPT，并提供右侧样式抽屉、元素级编辑、浏览器验收、点击触发导出，以及内置的 ECharts / 词云辅助 skill。
 
 ## 示例效果
 
@@ -24,8 +24,19 @@
 - 支持颜色控件和 HEX 文本输入，例如粘贴 `#1E5AA8`。
 - 单页模式提供章节导航；PPT 模式提供页面导航。
 - 图表区域兼容 ECharts resize。
+- 内置 `echarts-charts` 和 `generate-word-clouds`，可生成图表 HTML/options 和 PNG 词云素材。
 - HTML 导出可选择 `保留编辑` 或 `仅查看`。
 - 通过本地预览服务，在用户点击后生成图片、PDF 或 PPTX。
+
+## 依赖安装
+
+新环境首次使用浏览器验收、图片/PDF/PPTX 导出或词云生成前，可以先运行一次：
+
+```bash
+node scripts/bootstrap_html_report_deps.mjs
+```
+
+它会安装 Node 依赖（`playwright`、`sharp`）、创建 `.venv` 安装 `requirements.txt` 中的 Python 依赖，并安装 Playwright Chromium。仓库只跟踪 lockfile 和依赖清单，不提交 `node_modules/`、`.venv/` 或浏览器二进制。如果系统 `python` 仍缺依赖，使用 `.venv/bin/python` 运行 Python 脚本。
 
 ## 快速开始
 
@@ -66,7 +77,7 @@ $skill-installer install from https://github.com/Lucas-Fong/html-report-stable-b
 
 ## 作为 Codex Plugin 安装
 
-这个仓库现在已经包含 `.codex-plugin/plugin.json`，因此也可以作为 Codex plugin 分发。plugin 通过 `skills/html-report/SKILL.md` 暴露同一个 `html-report` skill，模板、脚本、references、fixtures 和示例图仍保留在仓库根目录统一维护。
+这个仓库现在已经包含 `.codex-plugin/plugin.json`，因此也可以作为 Codex plugin 分发。plugin 通过 `skills/` 暴露 `html-report`、`echarts-charts` 和 `generate-word-clouds` 三个 skill，报告模板、脚本、references、fixtures 和示例图仍保留在仓库根目录统一维护。
 
 当你希望它在 Codex 中拥有插件卡片、默认 prompt、元信息和 marketplace 分发能力时，使用 plugin 方式比单纯安装 skill 更合适。
 
@@ -138,11 +149,14 @@ $skill-installer install from https://github.com/Lucas-Fong/html-report-stable-b
 - `SKILL.md`：完整 skill 契约和工作流。
 - `.codex-plugin/plugin.json`：Codex plugin 元信息，用于插件发现和 marketplace 分发。
 - `skills/html-report/`：插件侧的 skill 入口。
+- `skills/echarts-charts/`：内置 ECharts 图表生成 skill。
+- `skills/generate-word-clouds/`：内置 PNG 词云生成 skill。
 - `assets/examples/`：README 和 skill 文档中使用的示例图。
 - `assets/template/`：单页和 PPT 模板，以及共享编辑器资源。
 - `fixtures/`：编辑器验收用例。
 - `references/`：补充契约，例如抽屉和元素编辑规则。
 - `scripts/`：构建器、检查脚本、浏览器 QA、预览服务和导出工具。
+- `requirements.txt`：bootstrap 脚本使用的 Python 依赖清单。
 
 ## 版本管理建议
 
