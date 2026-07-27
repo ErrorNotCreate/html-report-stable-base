@@ -64,6 +64,14 @@ Start local preview and click export buttons in the browser:
 node scripts/start_html_report_preview.mjs output 5300
 ```
 
+Build the bundled external-facing single-page demo:
+
+```bash
+python scripts/build_html_report_from_model.py fixtures/single-page-demo.json \
+  --template assets/template/html-report-single-base.html \
+  --out output/demo
+```
+
 ## Install From GitHub
 
 This repository is public, so other users can install the skill directly by giving Codex the GitHub URL:

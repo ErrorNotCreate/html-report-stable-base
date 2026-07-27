@@ -21,6 +21,7 @@ PPT_TEMPLATE = ROOT / "assets" / "template" / "html-report-ppt-base.html"
 EDITOR_JS = ROOT / "assets" / "template" / "shared" / "report-editor.js"
 EDITOR_CSS = ROOT / "assets" / "template" / "shared" / "report-editor.css"
 PLUGIN_MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
+SINGLE_DEMO_FIXTURE = ROOT / "fixtures" / "single-page-demo.json"
 
 
 def run_builder(model: dict, template: Path, output: Path) -> subprocess.CompletedProcess[str]:
@@ -85,6 +86,38 @@ def test_single_page_contract() -> None:
         assert_true(checked.returncode == 0, checked.stderr or checked.stdout)
         rejected = subprocess.run([sys.executable, str(EXPORTER), str(output), "--formats", "pptx"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
         assert_true(rejected.returncode != 0 and "only supports" in (rejected.stdout + rejected.stderr), "single-page mode must reject PPTX export")
+
+
+def test_single_page_nav_is_readable_and_theme_bound() -> None:
+    html = SINGLE_TEMPLATE.read_text(encoding="utf-8")
+    assert_true("--section-nav-width: 112px;" in html, "single-page nav must use a readable five-to-six-character side index width")
+    assert_true("body.section-nav-right .report" in html, "single-page nav must reserve enough room to avoid covering the report")
+    assert_true("body.drawer-open.section-nav-right .section-nav { right: calc(var(--drawer-width) + 16px); }" in html, "right nav must sit beside the drawer")
+    assert_true("body.section-nav-right .section-nav { display: grid; gap: 6px; right: 16px; }" in html, "right nav must use normal side-card spacing")
+    assert_true(".section-nav {\n      position: fixed;" in html and "background: color-mix(in srgb, var(--paper) 92%, transparent);" in html, "single-page nav container must use a normal theme-bound card background")
+    assert_true(".section-nav a" in html and "border-radius: 6px;" in html and "font: 12px/1.35 Arial, sans-serif;" in html, "single-page nav items must use normal readable rows")
+    assert_true(".section-nav a.active { background: color-mix(in srgb, var(--accent) 12%, var(--paper)); color: var(--accent);" in html, "active nav state must follow accent color")
+    assert_true(".demo-chart { width: 100%; max-width: 100%;" in html and "overflow: hidden;" in html, "single-page charts must stay inside the report column")
+    assert_true(".style-drawer { position: fixed;" in html and "background: color-mix(in srgb, var(--paper) 96%, var(--surface));" in html, "drawer must follow report theme")
+    assert_true(".drawer-body { min-height: 0; overflow-y: auto; padding: 12px 16px;" in html, "drawer spacing must be compact")
+    assert_true("<h3>HTML Builder</h3>" in html and 'aria-label="HTML Builder 设置"' in html, "drawer title must use HTML Builder naming")
+
+
+def test_single_page_demo_fixture_builds() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        output = Path(tmp) / "demo.html"
+        result = subprocess.run(
+            [sys.executable, str(BUILDER), str(SINGLE_DEMO_FIXTURE), "--template", str(SINGLE_TEMPLATE), "--out", str(output)],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        assert_true(result.returncode == 0, result.stderr or result.stdout)
+        html = output.read_text(encoding="utf-8")
+        assert_true("HTML Builder Single Page Demo" in html, "demo fixture must keep the presentation title")
+        assert_true("Aurora Air AI 可见度月报" in html, "demo fixture must include the demo report content")
+        assert_true(html.count('data-editable-element="chart"') >= 2, "demo fixture must include editable charts")
 
 
 def test_ppt_contract_remains_available() -> None:
@@ -247,6 +280,9 @@ def test_shared_editor_contract() -> None:
     for style in ("hidden", "left", "right"):
         assert_true(f"'{style}'" in source, f"single-page nav logic must support {style}")
     assert_true("window.syncDeckJsonFromDom?.();" in source, "instant PDF/PPTX export snapshots must sync PPT DOM changes first")
+    assert_true("function prettyJsonForEditor(value)" in source, "chart JSON editor must format stored payloads")
+    assert_true("if (stored) editor.value = prettyJsonForEditor(stored);" in source, "stored chart data must open as vertical JSON")
+    assert_true("isSinglePageMode() && elementType(selectedElement) === 'chart'" in source, "single-page chart width edits must be clamped to the report column")
 
 
 def test_preview_service_reuses_browser_for_exports() -> None:
@@ -350,6 +386,8 @@ def main() -> int:
     tests = [
         test_mode_is_required,
         test_single_page_contract,
+        test_single_page_nav_is_readable_and_theme_bound,
+        test_single_page_demo_fixture_builds,
         test_ppt_contract_remains_available,
         test_ppt_export_syncs_missing_named_dom_objects,
         test_ppt_export_syncs_unnamed_editable_dom_objects,

@@ -584,6 +584,16 @@
     }
   }
 
+  function prettyJsonForEditor(value) {
+    if (!value) return '';
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      return JSON.stringify(parsed, null, 2);
+    } catch (_error) {
+      return String(value);
+    }
+  }
+
   function refreshChartDataControls() {
     const editor = document.getElementById('chartDataEditor');
     const status = document.getElementById('chartDataStatus');
@@ -602,7 +612,7 @@
       return;
     }
     const stored = chartDomFromElement(selectedElement)?.dataset.chartData;
-    if (stored) editor.value = stored;
+    if (stored) editor.value = prettyJsonForEditor(stored);
     else editor.value = JSON.stringify(editablePayloadFromChartOption(option), null, 2);
     status.textContent = '修改 JSON 后点击“应用图表数据”。';
   }
@@ -688,20 +698,29 @@
     if (!mapping) return;
     const [property, unit] = mapping;
     if (input.value === '') return;
+    let nextValue = input.value;
     if (property === 'width' || property === 'height') {
       const computed = getComputedStyle(selectedElement);
       if (computed.display === 'inline') selectedElement.style.display = 'inline-block';
       if (property === 'width') {
-        selectedElement.style.maxWidth = 'none';
+        if (isSinglePageMode() && elementType(selectedElement) === 'chart') {
+          const parentWidth = selectedElement.parentElement?.getBoundingClientRect().width || 0;
+          const scaledParentWidth = Math.floor(parentWidth / reportScale());
+          const numericValue = parseFloat(input.value);
+          if (scaledParentWidth > 0 && Number.isFinite(numericValue)) nextValue = String(Math.min(numericValue, scaledParentWidth));
+          selectedElement.style.maxWidth = '100%';
+        } else {
+          selectedElement.style.maxWidth = 'none';
+        }
         const parent = selectedElement.parentElement;
         if (parent) {
           const parentStyle = getComputedStyle(parent);
           const mainAxis = parentStyle.flexDirection.startsWith('column') ? 'height' : 'width';
-          if (parentStyle.display.includes('flex') && mainAxis === property) selectedElement.style.flex = `0 0 ${input.value}${unit}`;
+          if (parentStyle.display.includes('flex') && mainAxis === property) selectedElement.style.flex = `0 0 ${nextValue}${unit}`;
         }
       }
     }
-    selectedElement.style.setProperty(property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`), `${input.value}${unit}`, 'important');
+    selectedElement.style.setProperty(property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`), `${nextValue}${unit}`, 'important');
     resizeSelectedChart();
     refreshElementControls();
     window.dispatchEvent(new Event('resize'));

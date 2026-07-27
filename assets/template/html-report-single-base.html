@@ -25,19 +25,19 @@
       --paper: #ffffff;
       --surface: #f5f7fa;
       --accent: #8b1538;
-      --section-nav-width: 152px;
+      --section-nav-width: 112px;
     }
     * { box-sizing: border-box; }
     html { background: var(--surface); }
     body { margin: 0; color: var(--ink); background: var(--surface); font-family: var(--font-family); }
     .report { width: min(1180px, calc(100% - 48px)); margin: 0 auto; background: var(--paper); min-height: 100vh; }
     body.section-nav-left .report {
-      width: min(1180px, calc(100vw - var(--section-nav-width) - 72px));
+      width: min(1180px, calc(100vw - var(--section-nav-width) - 48px));
       margin-left: calc(var(--section-nav-width) + 24px);
       margin-right: auto;
     }
     body.section-nav-right .report {
-      width: min(1180px, calc(100vw - var(--section-nav-width) - 72px));
+      width: min(1180px, calc(100vw - var(--section-nav-width) - 48px));
       margin-left: auto;
       margin-right: calc(var(--section-nav-width) + 24px);
     }
@@ -47,12 +47,12 @@
       margin-right: calc(var(--drawer-width) + max(24px, calc((100vw - var(--drawer-width) - 1180px) / 2)));
     }
     body.drawer-open.section-nav-left .report {
-      width: min(1180px, calc(100vw - var(--drawer-width) - var(--section-nav-width) - 72px));
+      width: min(1180px, calc(100vw - var(--drawer-width) - var(--section-nav-width) - 48px));
       margin-left: calc(var(--section-nav-width) + 24px);
       margin-right: calc(var(--drawer-width) + 24px);
     }
     body.drawer-open.section-nav-right .report {
-      width: min(1180px, calc(100vw - var(--drawer-width) - var(--section-nav-width) - 72px));
+      width: min(1180px, calc(100vw - var(--drawer-width) - var(--section-nav-width) - 48px));
       margin-left: 24px;
       margin-right: calc(var(--drawer-width) + var(--section-nav-width) + 24px);
     }
@@ -63,10 +63,10 @@
         margin-right: auto;
       }
       body:not(.drawer-open).section-nav-left .section-nav {
-        left: max(16px, calc((100vw - 1180px) / 2 - var(--section-nav-width) - 16px));
+        left: max(12px, calc((100vw - 1180px) / 2 - var(--section-nav-width) - 12px));
       }
       body:not(.drawer-open).section-nav-right .section-nav {
-        right: max(16px, calc((100vw - 1180px) / 2 - var(--section-nav-width) - 16px));
+        right: max(12px, calc((100vw - 1180px) / 2 - var(--section-nav-width) - 12px));
       }
     }
     @media (min-width: 1900px) {
@@ -83,10 +83,10 @@
         margin-right: calc(var(--drawer-width) + var(--drawer-report-side));
       }
       body.drawer-open.section-nav-left .section-nav {
-        left: max(16px, calc(var(--drawer-report-side) - var(--section-nav-width) - 16px));
+        left: max(12px, calc(var(--drawer-report-side) - var(--section-nav-width) - 12px));
       }
       body.drawer-open.section-nav-right .section-nav {
-        right: calc(var(--drawer-width) + max(16px, calc(var(--drawer-report-side) - var(--section-nav-width) - 16px)));
+        right: calc(var(--drawer-width) + max(12px, calc(var(--drawer-report-side) - var(--section-nav-width) - 12px)));
       }
     }
     .report-section { padding: 64px 72px; border-bottom: 1px solid var(--line); }
@@ -103,15 +103,19 @@
     th, td { padding: var(--table-cell-padding-y) var(--table-cell-padding-x); border: 1px solid var(--line); }
     .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 28px; }
     .demo-shape { min-height: 180px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
-    .demo-chart { width: 100%; height: 280px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--muted); }
+    .demo-chart { width: 100%; max-width: 100%; height: 280px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--muted); overflow: hidden; }
+    .demo-chart canvas { max-width: 100%; max-height: 100%; }
+    body.edit-mode [data-editable-element="chart"].selected-element {
+      outline-offset: -3px;
+    }
     .demo-image { display: block; width: 100%; height: 280px; object-fit: cover; background: #e9edf3; }
-    .drawer-toggle { position: fixed; right: 18px; bottom: 18px; z-index: 40; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font-size: 18px; cursor: pointer; box-shadow: 0 8px 24px rgba(16,24,40,.14); }
-    .style-drawer { position: fixed; z-index: 50; top: 0; right: 0; width: var(--drawer-width); height: 100vh; display: grid; grid-template-rows: auto 1fr auto auto; background: #fff; border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .18s ease; }
+    .drawer-toggle { position: fixed; right: 18px; bottom: 18px; z-index: 40; width: 38px; height: 38px; border: 1px solid color-mix(in srgb, var(--line) 86%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--accent); font-size: 18px; cursor: pointer; box-shadow: 0 8px 24px rgba(16,24,40,.14); }
+    .style-drawer { position: fixed; z-index: 50; top: 0; right: 0; width: var(--drawer-width); height: 100vh; display: grid; grid-template-rows: auto 1fr auto auto; background: color-mix(in srgb, var(--paper) 96%, var(--surface)); border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .18s ease; font-size: 12px; line-height: 1.42; }
     .style-drawer.open { transform: translateX(0); }
     body.drawer-open .drawer-toggle { display: none; }
-    .drawer-header, .drawer-footer, .drawer-repair { padding: 14px 18px; background: #fff; }
-    .drawer-header { border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
-    .drawer-body { min-height: 0; overflow-y: auto; padding: 14px 18px; display: grid; align-content: start; gap: 12px; }
+    .drawer-header, .drawer-footer, .drawer-repair { padding: 12px 16px; background: color-mix(in srgb, var(--paper) 96%, var(--surface)); }
+    .drawer-header { border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+    .drawer-body { min-height: 0; overflow-y: auto; padding: 12px 16px; display: grid; align-content: start; gap: 9px; }
     .drawer-footer { border-top: 1px solid var(--line); }
     .drawer-footer .export-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
     .drawer-footer .export-actions button { min-width: 0; padding-inline: 5px; font-size: 12px; }
@@ -128,15 +132,15 @@
     .drawer-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .drawer-title-row h3, .control-group h4 { margin: 0; font-family: Arial, sans-serif; letter-spacing: 0; }
     .drawer-title-row h3 { font-size: 18px; }
-    .control-group { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
-    .control-group h4 { font-size: 14px; }
-    .control-row { display: grid; grid-template-columns: 68px minmax(0, 1fr) 24px; gap: 6px; align-items: center; font: 12px/1.4 Arial, sans-serif; }
-    .control-row input, .control-row select, .control-row textarea { width: 100%; min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; }
+    .control-group { display: grid; gap: 7px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--paper) 82%, transparent); }
+    .control-group h4 { font-size: 13px; }
+    .control-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 22px; gap: 6px; align-items: center; font: 12px/1.4 Arial, sans-serif; }
+    .control-row input, .control-row select, .control-row textarea { width: 100%; min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
     .color-input-wrap { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 6px; align-items: center; }
     .color-input-wrap input[type="color"] { width: 32px; height: 28px; padding: 2px; }
     .color-input-wrap input[type="text"] { min-width: 0; text-transform: uppercase; }
     .control-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .style-drawer button { min-height: 34px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+    .style-drawer button { min-height: 32px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); cursor: pointer; }
     .style-drawer button.active, .style-drawer .primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     .style-drawer .secondary { background: #fff; color: var(--ink); border-color: var(--line); }
     .close-icon-button { width: 30px; min-height: 30px !important; font-size: 18px; }
@@ -145,16 +149,17 @@
     .section-nav {
       position: fixed;
       z-index: 30;
-      top: 92px;
+      top: 96px;
       width: var(--section-nav-width);
       max-height: calc(100vh - 140px);
       overflow: auto;
       display: none;
       padding: 8px;
-      border: 1px solid var(--line);
+      border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
       border-radius: 8px;
-      background: rgba(255,255,255,.92);
+      background: color-mix(in srgb, var(--paper) 92%, transparent);
       box-shadow: 0 8px 22px rgba(16,24,40,.10);
+      backdrop-filter: blur(8px);
     }
     body.section-nav-left .section-nav { display: grid; gap: 6px; left: 16px; }
     body.section-nav-right .section-nav { display: grid; gap: 6px; right: 16px; }
@@ -170,8 +175,11 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
     }
-    .section-nav a.active { background: #eef6f4; color: #2f7a70; font-weight: 700; }
+    .section-nav a.active { background: color-mix(in srgb, var(--accent) 12%, var(--paper)); color: var(--accent); font-weight: 700; }
     .nav-style-control { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .typography-label {
       position: absolute;
@@ -223,10 +231,10 @@
 <body data-report-mode="single-page" class="single-page-mode section-nav-right">
   <button class="drawer-toggle" id="drawerToggle" type="button" aria-label="打开样式设置" title="样式设置">⚙</button>
   <nav class="section-nav" id="sectionNav" aria-label="章节导航"></nav>
-  <aside class="style-drawer" id="styleDrawer" aria-label="HTML Report 样式设置">
+  <aside class="style-drawer" id="styleDrawer" aria-label="HTML Builder 设置">
     <div class="drawer-header">
       <div class="drawer-title-row">
-        <h3>HTML Report 样式</h3>
+        <h3>HTML Builder</h3>
         <button class="close-icon-button" id="closeDrawer" type="button" aria-label="关闭抽屉">×</button>
       </div>
       <button class="full-btn" id="editToggle" type="button">编辑模式</button>

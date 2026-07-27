@@ -63,6 +63,14 @@ node scripts/qa_preview_export.mjs output/index.html
 node scripts/start_html_report_preview.mjs output 5300
 ```
 
+构建内置的对外演示单页 Demo：
+
+```bash
+python scripts/build_html_report_from_model.py fixtures/single-page-demo.json \
+  --template assets/template/html-report-single-base.html \
+  --out output/demo
+```
+
 ## 从 GitHub 安装
 
 这个仓库已经公开，其他用户可以把 GitHub 地址交给 Codex，直接安装 skill：
